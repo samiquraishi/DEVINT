@@ -1,0 +1,11 @@
+{
+  "phase1": {
+    "text": "The FUTURE doesn't wait.",
+    "subText": "Neither should your BUSINESS.",
+    "highlights": ["FUTURE", "BUSINESS"]
+  },
+  "phase2": {
+    "text": "Welcome to the world of DEVINT.",
+    "highlights": ["DEVINT", "devint", "DEVINT."]
+  }
+}

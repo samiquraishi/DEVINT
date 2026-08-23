@@ -2,7 +2,9 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
-import FoldText from "./fold-text";
+import HeroSection from "@/app/pages/landing-page/sections/hero";
+import TransitionSection from "@/app/pages/landing-page/sections/transition";
+import type { GlowingOrbHandle } from "./glowing-orb";
 
 const clamp = (v: number, a: number, b: number): number => (v < a ? a : v > b ? b : v);
 
@@ -90,11 +92,17 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
   const line1Ref = useRef<HTMLDivElement | null>(null);
   const line2Ref = useRef<HTMLDivElement | null>(null);
 
+  const text3Ref = useRef<HTMLDivElement | null>(null);
+  const line3Ref = useRef<HTMLDivElement | null>(null);
+  const orbRef = useRef<GlowingOrbHandle | null>(null);
+
   const showText2Ref = useRef(false);
   const showLine2Ref = useRef(false);
+  const showText3Ref = useRef(false);
 
   const [renderText2, setRenderText2] = useState(false);
   const [renderLine2, setRenderLine2] = useState(false);
+  const [renderText3, setRenderText3] = useState(false);
 
   const propsRef = useRef<Required<Pick<ScrollExpandProps, ConfigKey>>>(
     {} as Required<Pick<ScrollExpandProps, ConfigKey>>
@@ -113,11 +121,15 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     enabled,
   };
 
-  const applyProgress = useCallback((p: number) => {
+  const applyProgress = useCallback((progressY: number) => {
     const frame = frameRef.current;
     const media = mediaRef.current;
     if (!frame || !media) return;
     const c = propsRef.current;
+
+    const ratio = (c.scrollDistance + c.holdDistance) / c.scrollDistance;
+    const p = clamp(progressY * ratio, 0, 1);
+    const pTotal = progressY;
 
     const e = smoothstep(0, 0.4, p);
 
@@ -146,13 +158,14 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
       titleRef.current.style.transform = `scale(${1 + 0.15 * out})`;
     }
 
-    const active2 = p >= 0.45 && p < 0.97;
+    // Text 2: "The FUTURE doesn't wait. Neither should your BUSINESS."
+    const active2 = pTotal >= 0.10 && pTotal < 0.28;
     if (active2 !== showText2Ref.current) {
       showText2Ref.current = active2;
       setRenderText2(active2);
     }
 
-    const activeLine2 = p >= 0.70 && p < 0.97;
+    const activeLine2 = pTotal >= 0.15 && pTotal < 0.28;
     if (activeLine2 !== showLine2Ref.current) {
       showLine2Ref.current = activeLine2;
       setRenderLine2(activeLine2);
@@ -162,13 +175,44 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
       if (active2) {
         text2Ref.current.style.display = "flex";
         
-        const out2 = smoothstep(0.91, 0.97, p);
+        const out2 = smoothstep(0.23, 0.28, pTotal);
         text2Ref.current.style.opacity = `${1 - out2}`;
         text2Ref.current.style.transform = `scale(${1 + 0.15 * out2})`;
       } else {
         text2Ref.current.style.opacity = "0";
         text2Ref.current.style.display = "none";
       }
+    }
+
+    // Text 3: "Welcome to the world of DEVINT." — appears while the orb is growing
+    const active3 = pTotal >= 0.40 && pTotal < 0.81;
+    if (active3 !== showText3Ref.current) {
+      showText3Ref.current = active3;
+      setRenderText3(active3);
+    }
+
+    // Drive both text3 layers (Layer A: mix-blend-difference, Layer B: DEVINT overlay)
+    const text3Overlay = stageRef.current?.querySelector<HTMLElement>("[data-text3-overlay]");
+    const text3Layers = [text3Ref.current, text3Overlay].filter(Boolean) as HTMLElement[];
+
+    for (const el of text3Layers) {
+      if (active3) {
+        el.style.display = "flex";
+
+        // Fade in gently
+        const fadeIn3 = smoothstep(0.40, 0.44, pTotal);
+        // Fade out before orb engulfs everything
+        const fadeOut3 = smoothstep(0.74, 0.81, pTotal);
+        el.style.opacity = `${fadeIn3 * (1 - fadeOut3)}`;
+        el.style.transform = `scale(${1 + 0.15 * fadeOut3})`;
+      } else {
+        el.style.opacity = "0";
+        el.style.display = "none";
+      }
+    }
+
+    if (orbRef.current) {
+      orbRef.current.updateProgress(pTotal);
     }
 
     if (hintRef.current) {
@@ -178,7 +222,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     }
 
     if (overlayRef.current) {
-      const inn = smoothstep(0.97, 1.0, p);
+      const inn = smoothstep(0.96, 1.0, pTotal);
       overlayRef.current.style.opacity = `${inn}`;
       overlayRef.current.style.transform = `translate3d(0, ${18 * (1 - inn)}px, 0)`;
     }
@@ -206,18 +250,18 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
       track.style.height = `${stageH * (1 + Math.max(0, c.scrollDistance) + Math.max(0, c.holdDistance))}px`;
 
       const w = root.clientWidth || stageH;
-      stage.style.setProperty("--se-title-size", `${clamp(w * 0.18, 48, 220)}px`);
+      stage.style.setProperty("--se-title-size", `${clamp(w * 0.19, 52, 235)}px`);
     };
 
     const readProgress = () => {
       const c = propsRef.current;
       if (!c.enabled) return 1;
-      const span = stageH * Math.max(0.01, c.scrollDistance);
+      const totalSpan = stageH * (Math.max(0.01, c.scrollDistance) + Math.max(0, c.holdDistance));
       if (c.useWindowScroll) {
         const top = track.getBoundingClientRect().top;
-        return clamp(-top / span, 0, 1);
+        return clamp(-top / totalSpan, 0, 1);
       }
-      return clamp(root.scrollTop / span, 0, 1);
+      return clamp(root.scrollTop / totalSpan, 0, 1);
     };
 
     const tick = () => {
@@ -341,56 +385,15 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
               </div>
             ) : null}
           </div>
-          {title ? (
-            <div
-              ref={titleRef}
-              className="absolute inset-0 z-20 flex items-center justify-center m-0 px-[2%] text-center font-lemon font-light uppercase leading-none text-white mix-blend-difference [font-size:var(--se-title-size)] pointer-events-none select-none [will-change:opacity,transform]"
-            >
-              {title}
-            </div>
-          ) : null}
-
-          {/* Text 2: Scroll-revealed sentences */}
-          <div
-            ref={text2Ref}
-            className="absolute inset-0 z-20 flex items-center justify-center m-0 px-[6%] text-center mix-blend-difference pointer-events-none select-none [will-change:opacity,transform] opacity-0"
-            style={{ display: "none" }}
-          >
-            <div className="flex flex-col items-start justify-center max-w-4xl w-full gap-y-8">
-              <div ref={line1Ref} className="min-h-[1.2em] [will-change:opacity]">
-                {renderText2 && (
-                  <FoldText
-                    text="The FUTURE doesn't wait."
-                    trigger="mount"
-                    splitBy="word"
-                    duration={1.5}
-                    stagger={0.1}
-                    fontSize="clamp(1.5rem, 3.2vw, 2.7rem)"
-                    fontWeight={300}
-                    color="#ffffff"
-                    highlightWords={["FUTURE"]}
-                    className="select-none font-montserrat font-light"
-                  />
-                )}
-              </div>
-              <div ref={line2Ref} className="min-h-[1.2em] [will-change:opacity]">
-                {renderLine2 && (
-                  <FoldText
-                    text="Neither should your BUSINESS."
-                    trigger="mount"
-                    splitBy="word"
-                    duration={1.5}
-                    stagger={0.1}
-                    fontSize="clamp(0.8rem, 1.3vw, 1.1rem)"
-                    fontWeight={300}
-                    color="#ffffff"
-                    highlightWords={["BUSINESS"]}
-                    className="select-none font-montserrat font-light"
-                  />
-                )}
-              </div>
-            </div>
-          </div>
+          <HeroSection ref={titleRef} />
+          <TransitionSection
+            text2Ref={text2Ref}
+            text3Ref={text3Ref}
+            orbRef={orbRef}
+            activeLine1={renderText2}
+            activeLine2={renderLine2}
+            activeLine3={renderText3}
+          />
           {scrollHint ? (
             <div
               ref={hintRef}
