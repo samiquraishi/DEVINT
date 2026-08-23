@@ -117,7 +117,6 @@ const FOLD_TEXT_STYLES = `.fold-text {
   inset: -0.08em -0.02em;
   pointer-events: none;
   opacity: var(--fold-crease, 0);
-  mix-blend-mode: multiply;
   border-radius: 0.08em;
 }
 
@@ -149,6 +148,7 @@ const FOLD_TEXT_STYLES = `.fold-text {
 
 .fold-text-highlight {
   font-family: 'LEMON MILK', 'Lemon Milk', 'Syncopate', sans-serif !important;
+  font-size: 0.88em;
   background: linear-gradient(
     135deg,
     #ff8a8a 10%,  /* light red */
@@ -156,18 +156,19 @@ const FOLD_TEXT_STYLES = `.fold-text {
     #82b1ff 80%,  /* light blue */
     #ff8a8a 100%
   );
-  background-size: 200% auto;
+  background-size: var(--bg-size, 200%) 400%;
+  background-position-x: var(--bg-x, 0%) !important;
   -webkit-background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
   color: transparent !important;
-  animation: rainbow-shine 4s linear infinite;
+  animation: rainbow-shine-y 4s linear infinite;
   display: inline-block;
 }
 
-@keyframes rainbow-shine {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+@keyframes rainbow-shine-y {
+  0% { background-position-y: 0%; }
+  50% { background-position-y: 100%; }
+  100% { background-position-y: 0%; }
 }
 `;
 
@@ -241,10 +242,49 @@ export default function FoldText({
       });
     }
 
-    return Array.from(text).map((char, index) => {
-      if (char === "\n") return <br key={`br-${index}`} />;
-      return renderSegment(char === " " ? "\u00A0" : char, `segment-char-${index}`);
-    });
+    if (splitBy === "char") {
+      const result = text.split(/(\s+)/).flatMap((part, wordIndex): any => {
+        if (!part) return [];
+        if (/^\s+$/.test(part)) return renderWhitespace(part, `ws-${wordIndex}`);
+
+        const cleanWord = part.toLowerCase().replace(/[.,'":;!?()]/g, "");
+        const isHighlighted = highlightAll || highlightWords.some(w => w.toLowerCase() === cleanWord);
+
+        const charArray = Array.from(part);
+        const wordLength = charArray.length;
+
+        const charElements = charArray.map((char, charIndex) => {
+          segmentIndex += 1;
+          const bgX = wordLength > 1 ? (charIndex / (wordLength - 1)) * 100 : 0;
+          
+          return (
+            <span
+              className="fold-text-segment"
+              data-fold-split="char"
+              key={`segment-char-${segmentIndex}`}
+              style={{ "--fold-perspective": `${safePerspective}px` } as CSSProperties}
+            >
+              <span
+                className={`fold-text-piece ${isHighlighted ? "fold-text-highlight" : ""}`.trim()}
+                data-fold-hinge={hinge}
+                style={{ 
+                  transformOrigin: hingeConfig.origin, 
+                  "--bg-size": `${wordLength * 100}%`,
+                  "--bg-x": `${bgX}%`
+                } as CSSProperties}
+              >
+                {char || "\u00A0"}
+              </span>
+            </span>
+          );
+        });
+
+        return charElements;
+      });
+      return result as ReactNode[];
+    }
+
+    return null as ReactNode;
   }, [text, splitBy, hinge, hingeConfig.origin, safePerspective, highlightWords]);
 
   useEffect(() => {
