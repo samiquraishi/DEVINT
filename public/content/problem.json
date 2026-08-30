@@ -1,0 +1,187 @@
+{
+  "statement1": {
+    "title": "Everything starts with a VISION.",
+    "subtitle": "An idea. A better way of working. Something you want to bring to life.",
+    "highlights": ["VISION"]
+  },
+  "statement2": {
+    "title": "Turning vision into TECHNOLOGY is complex.",
+    "subtitle": "Ideas are simple. Making all the pieces work together isn't.",
+    "highlights": ["TECHNOLOGY"]
+  },
+  "statement3": {
+    "title": "You bring the vision. We BUILD the technology.",
+    "subtitle": "From websites and apps to AI, data, automation and everything underneath.",
+    "highlights": ["BUILD"]
+  },
+  "problemCards": [
+    {
+      "id": "card-0",
+      "url": "/images/manual-card.jpeg",
+      "author": "Devint",
+      "title": "Manual Work",
+      "aspectRatio": "aspect-square",
+      "widthClass": "w-28 md:w-36",
+      "positionClass": "top-[12%] left-[8%]",
+      "depth": 0.8,
+      "zIndexClass": "z-10",
+      "appearOrder": 0,
+      "exitOrder": 1,
+      "challengeTitle": "Too much time can disappear into repetitive work.",
+      "challengeBullets": [
+        "Manual data entry",
+        "Repetitive reports and updates",
+        "Routine administrative tasks",
+        "Processes that happen again and again"
+      ],
+      "closingLine": "Let technology handle the repetition."
+    },
+    {
+      "id": "card-1",
+      "url": "/images/idea-card.jpeg",
+      "author": "Devint",
+      "title": "Idea",
+      "aspectRatio": "aspect-[3/4]",
+      "widthClass": "w-36 md:w-48",
+      "positionClass": "top-[8%] left-[76%]",
+      "depth": 2.5,
+      "zIndexClass": "z-30",
+      "appearOrder": 2,
+      "exitOrder": 3,
+      "challengeTitle": "You know what you want to create, but turning an idea into working technology can be difficult.",
+      "challengeBullets": [
+        "Defining what to build first",
+        "Choosing the right technology",
+        "Turning the concept into a working product",
+        "Moving from idea to launch"
+      ],
+      "closingLine": "An idea needs a path to reality."
+    },
+    {
+      "id": "card-2",
+      "url": "/images/digital-card.jpeg",
+      "author": "Devint",
+      "title": "Digital Presence",
+      "aspectRatio": "aspect-[4/3]",
+      "widthClass": "w-36 md:w-50",
+      "positionClass": "top-[38%] left-[12%]",
+      "depth": 2.5,
+      "zIndexClass": "z-30",
+      "appearOrder": 1,
+      "exitOrder": 5,
+      "challengeTitle": "Your digital presence should reflect the quality of what you do.",
+      "challengeBullets": [
+        "Outdated or limited websites",
+        "Poor mobile experiences",
+        "Difficult content management",
+        "A digital presence that doesn't represent you"
+      ],
+      "closingLine": "Your work deserves a digital presence that does it justice."
+    },
+    {
+      "id": "card-3",
+      "url": "/images/connection-card.jpeg",
+      "author": "Devint",
+      "title": "Connection",
+      "aspectRatio": "aspect-square",
+      "widthClass": "w-32 md:w-44",
+      "positionClass": "top-[75%] left-[78%]",
+      "depth": 2.5,
+      "zIndexClass": "z-30",
+      "appearOrder": 3,
+      "exitOrder": 0,
+      "challengeTitle": "Your tools shouldn't work in isolation.",
+      "challengeBullets": [
+        "Data trapped across different systems",
+        "Repeated information entry",
+        "Missing integrations",
+        "Poor flow between platforms"
+      ],
+      "closingLine": "Your technology should work as one."
+    },
+    {
+      "id": "card-4",
+      "url": "/images/custom-card.jpeg",
+      "author": "Devint",
+      "title": "Custom Software",
+      "aspectRatio": "aspect-[3/4]",
+      "widthClass": "w-28 md:w-38",
+      "positionClass": "top-[76%] left-[18%]",
+      "depth": 0.8,
+      "zIndexClass": "z-10",
+      "appearOrder": 4,
+      "exitOrder": 4,
+      "challengeTitle": "Sometimes existing software simply doesn't fit the way you work.",
+      "challengeBullets": [
+        "Missing features",
+        "Workflows that don't match",
+        "Too many workarounds",
+        "Limitations of off-the-shelf tools"
+      ],
+      "closingLine": "Technology should adapt to you."
+    },
+    {
+      "id": "card-5",
+      "url": "/images/ux-card.jpeg",
+      "author": "Devint",
+      "title": "User Experience",
+      "aspectRatio": "aspect-[4/3]",
+      "widthClass": "w-32 md:w-44",
+      "positionClass": "top-[44%] left-[76%]",
+      "depth": 0.8,
+      "zIndexClass": "z-10",
+      "appearOrder": 5,
+      "exitOrder": 2,
+      "challengeTitle": "Something can work perfectly and still be difficult to use.",
+      "challengeBullets": [
+        "Confusing navigation",
+        "Too many steps",
+        "Unclear interfaces",
+        "Inconsistent experiences"
+      ],
+      "closingLine": "Good technology should feel natural."
+    },
+    {
+      "id": "card-6",
+      "url": "/images/growth-card.jpeg",
+      "author": "Devint",
+      "title": "Growth",
+      "aspectRatio": "aspect-[9/16]",
+      "widthClass": "w-32 md:w-44",
+      "positionClass": "top-[72%] left-[52%]",
+      "depth": 1.5,
+      "zIndexClass": "z-20",
+      "appearOrder": 6,
+      "exitOrder": 6,
+      "challengeTitle": "What works today may not be enough tomorrow.",
+      "challengeBullets": [
+        "More users",
+        "More data",
+        "More features",
+        "More demands on your technology"
+      ],
+      "closingLine": "Build for where you're going, not only where you are."
+    },
+    {
+      "id": "card-7",
+      "url": "/images/data-card.jpeg",
+      "author": "Devint",
+      "title": "Data",
+      "aspectRatio": "aspect-[16/9]",
+      "widthClass": "w-44 md:w-60",
+      "positionClass": "top-[10%] left-[48%]",
+      "depth": 1.5,
+      "zIndexClass": "z-20",
+      "appearOrder": 7,
+      "exitOrder": 7,
+      "challengeTitle": "Having data is one thing. Making it useful is another.",
+      "challengeBullets": [
+        "Information scattered across different places",
+        "Difficult to organize and access",
+        "Too much information, not enough clarity",
+        "Manual analysis and reporting"
+      ],
+      "closingLine": "Data should create clarity."
+    }
+  ]
+}

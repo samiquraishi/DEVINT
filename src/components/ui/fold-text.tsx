@@ -25,6 +25,8 @@ export interface FoldTextProps {
   style?: CSSProperties;
   highlightWords?: string[];
   highlightAll?: boolean;
+  mode?: "in" | "out";
+  onComplete?: () => void;
 }
 
 type HingeConfig = {
@@ -74,7 +76,7 @@ const FOLD_TEXT_STYLES = `.fold-text {
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
-  border: 0;
+  border-width: 0;
 }
 
 .fold-text-visual {
@@ -111,43 +113,15 @@ const FOLD_TEXT_STYLES = `.fold-text {
   will-change: transform, opacity;
 }
 
-.fold-text-piece::after {
-  content: '';
-  position: absolute;
-  inset: -0.08em -0.02em;
-  pointer-events: none;
-  opacity: var(--fold-crease, 0);
-  border-radius: 0.08em;
-}
-
-.fold-text-piece[data-fold-hinge='top']::after {
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.58) 0%, rgba(0, 0, 0, 0.22) 42%, rgba(255, 255, 255, 0.26) 100%);
-}
-
-.fold-text-piece[data-fold-hinge='bottom']::after {
-  background: linear-gradient(0deg, rgba(0, 0, 0, 0.58) 0%, rgba(0, 0, 0, 0.22) 42%, rgba(255, 255, 255, 0.26) 100%);
-}
-
-.fold-text-piece[data-fold-hinge='left']::after {
-  background: linear-gradient(90deg, rgba(0, 0, 0, 0.58) 0%, rgba(0, 0, 0, 0.22) 42%, rgba(255, 255, 255, 0.26) 100%);
-}
-
-.fold-text-piece[data-fold-hinge='right']::after {
-  background: linear-gradient(270deg, rgba(0, 0, 0, 0.58) 0%, rgba(0, 0, 0, 0.22) 42%, rgba(255, 255, 255, 0.26) 100%);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .fold-text-piece {
     transform: none !important;
-  }
-
-  .fold-text-piece::after {
-    opacity: 0 !important;
   }
 }
 
 .fold-text-highlight {
   font-family: 'LEMON MILK', 'Lemon Milk', 'Syncopate', sans-serif !important;
+  font-weight: 300 !important;
   font-size: 0.88em;
   background: linear-gradient(
     135deg,
@@ -189,6 +163,8 @@ export default function FoldText({
   style = {},
   highlightWords = [],
   highlightAll = false,
+  mode = "in",
+  onComplete,
 }: FoldTextProps) {
   const [mounted, setMounted] = useState(false);
   const rootRef = useRef<HTMLSpanElement | null>(null);
@@ -299,6 +275,35 @@ export default function FoldText({
     const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     const activeDuration = reduceMotion ? Math.min(duration, 0.22) : duration;
     const activeStagger = reduceMotion ? Math.min(stagger, 0.02) : stagger;
+
+    const killTimeline = () => {
+      timelineRef.current?.kill();
+      timelineRef.current = null;
+      gsap.killTweensOf(pieces);
+    };
+
+    if (mode === "out") {
+      killTimeline();
+      gsap.set(pieces, { opacity: 1, rotateX: 0, rotateY: 0 });
+      const outTl = gsap.timeline({
+        onComplete: () => {
+          if (onComplete) onComplete();
+        },
+      });
+      outTl.to(pieces, {
+        opacity: 0,
+        rotateX: reduceMotion ? 0 : hingeConfig.rotateX,
+        rotateY: reduceMotion ? 0 : hingeConfig.rotateY,
+        duration: activeDuration,
+        ease: reduceMotion ? "power1.in" : "power2.inOut",
+        stagger: activeStagger,
+      });
+      timelineRef.current = outTl;
+      return () => {
+        killTimeline();
+      };
+    }
+
     const fromVars = {
       opacity: 0,
       rotateX: reduceMotion ? 0 : hingeConfig.rotateX,
@@ -316,12 +321,9 @@ export default function FoldText({
       ease: reduceMotion ? "power1.out" : ease,
       stagger: activeStagger,
       clearProps: "willChange",
-    };
-
-    const killTimeline = () => {
-      timelineRef.current?.kill();
-      timelineRef.current = null;
-      gsap.killTweensOf(pieces);
+      onComplete: () => {
+        if (onComplete) onComplete();
+      },
     };
 
     const play = (repeat: boolean): gsap.core.Timeline => {
@@ -372,6 +374,7 @@ export default function FoldText({
     perspective,
     safeCrease,
     trigger,
+    mode,
     hingeConfig.origin,
     hingeConfig.rotateX,
     hingeConfig.rotateY,

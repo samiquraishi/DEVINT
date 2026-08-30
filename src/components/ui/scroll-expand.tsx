@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import HeroSection from "@/app/pages/landing-page/sections/hero";
 import TransitionSection from "@/app/pages/landing-page/sections/transition";
+import ProblemSection, { ProblemSectionRef } from "@/app/pages/landing-page/sections/problem";
 import type { GlowingOrbHandle } from "./glowing-orb";
 
 const clamp = (v: number, a: number, b: number): number => (v < a ? a : v > b ? b : v);
@@ -95,14 +96,17 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
   const text3Ref = useRef<HTMLDivElement | null>(null);
   const line3Ref = useRef<HTMLDivElement | null>(null);
   const orbRef = useRef<GlowingOrbHandle | null>(null);
+  const problemRef = useRef<ProblemSectionRef | null>(null);
 
   const showText2Ref = useRef(false);
   const showLine2Ref = useRef(false);
   const showText3Ref = useRef(false);
+  const showProblemRef = useRef(false);
 
   const [renderText2, setRenderText2] = useState(false);
   const [renderLine2, setRenderLine2] = useState(false);
   const [renderText3, setRenderText3] = useState(false);
+  const [problemActive, setProblemActive] = useState(false);
 
   const propsRef = useRef<Required<Pick<ScrollExpandProps, ConfigKey>>>(
     {} as Required<Pick<ScrollExpandProps, ConfigKey>>
@@ -159,13 +163,13 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     }
 
     // Text 2: "The FUTURE doesn't wait. Neither should your BUSINESS."
-    const active2 = pTotal >= 0.10 && pTotal < 0.28;
+    const active2 = pTotal >= 0.04 && pTotal < 0.16;
     if (active2 !== showText2Ref.current) {
       showText2Ref.current = active2;
       setRenderText2(active2);
     }
 
-    const activeLine2 = pTotal >= 0.15 && pTotal < 0.28;
+    const activeLine2 = pTotal >= 0.06 && pTotal < 0.16;
     if (activeLine2 !== showLine2Ref.current) {
       showLine2Ref.current = activeLine2;
       setRenderLine2(activeLine2);
@@ -175,7 +179,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
       if (active2) {
         text2Ref.current.style.display = "flex";
         
-        const out2 = smoothstep(0.23, 0.28, pTotal);
+        const out2 = smoothstep(0.12, 0.16, pTotal);
         text2Ref.current.style.opacity = `${1 - out2}`;
         text2Ref.current.style.transform = `scale(${1 + 0.15 * out2})`;
       } else {
@@ -185,7 +189,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     }
 
     // Text 3: "Welcome to the world of DEVINT." — appears while the orb is growing
-    const active3 = pTotal >= 0.40 && pTotal < 0.81;
+    const active3 = pTotal >= 0.16 && pTotal < 0.30;
     if (active3 !== showText3Ref.current) {
       showText3Ref.current = active3;
       setRenderText3(active3);
@@ -200,9 +204,9 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
         el.style.display = "flex";
 
         // Fade in gently
-        const fadeIn3 = smoothstep(0.40, 0.44, pTotal);
+        const fadeIn3 = smoothstep(0.16, 0.20, pTotal);
         // Fade out before orb engulfs everything
-        const fadeOut3 = smoothstep(0.74, 0.81, pTotal);
+        const fadeOut3 = smoothstep(0.26, 0.30, pTotal);
         el.style.opacity = `${fadeIn3 * (1 - fadeOut3)}`;
         el.style.transform = `scale(${1 + 0.15 * fadeOut3})`;
       } else {
@@ -213,6 +217,34 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
 
     if (orbRef.current) {
       orbRef.current.updateProgress(pTotal);
+    }
+
+    // Problem Section: SphereGrid appears as Text 3 finishes fading
+    const activeProblem = pTotal >= 0.28;
+    if (activeProblem !== showProblemRef.current) {
+      showProblemRef.current = activeProblem;
+      setProblemActive(activeProblem);
+    }
+
+    if (problemRef.current) {
+      const container = problemRef.current.container;
+      if (container) {
+        if (pTotal >= 0.28) {
+          const problemFadeIn = smoothstep(0.28, 0.32, pTotal);
+          container.style.opacity = `${problemFadeIn}`;
+          if (pTotal >= 0.32) {
+            container.style.pointerEvents = "auto";
+          } else {
+            container.style.pointerEvents = "none";
+          }
+        } else {
+          container.style.opacity = "0";
+          container.style.pointerEvents = "none";
+        }
+      }
+      if (pTotal >= 0.28) {
+        problemRef.current.updateProgress(pTotal);
+      }
     }
 
     if (hintRef.current) {
@@ -393,6 +425,10 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
             activeLine1={renderText2}
             activeLine2={renderLine2}
             activeLine3={renderText3}
+          />
+          <ProblemSection
+            ref={problemRef}
+            isActive={problemActive}
           />
           {scrollHint ? (
             <div
