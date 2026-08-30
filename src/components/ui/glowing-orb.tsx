@@ -276,10 +276,10 @@ export const GlowingOrb = forwardRef<GlowingOrbHandle, {}>((_, ref) => {
 
       let orbSize = 0;
 
-      if (pTotal >= 0.33 && pTotal <= 0.80) {
-        const t = (pTotal - 0.33) / 0.47; // 0 → 1 over the full range
+      if (pTotal >= 0.12 && pTotal <= 0.30) {
+        const t = (pTotal - 0.12) / 0.18; // 0 → 1 over the full range
         orbSize = 4.0 * t * t;            // smooth quadratic ease-in
-      } else if (pTotal > 0.80) {
+      } else if (pTotal > 0.30) {
         orbSize = 4.0;
       }
 

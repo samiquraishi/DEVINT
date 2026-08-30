@@ -3,17 +3,39 @@
 import React, { forwardRef } from "react";
 import FoldText from "@/components/ui/fold-text";
 
-interface AnimatedFoldTextProps {
+export interface AnimatedFoldTextProps {
   text: string;
   fontSize: string | number;
+  fontWeight?: string | number;
   highlightWords?: string[];
   active?: boolean;
+  mode?: "in" | "out";
   align?: "left" | "center" | "right";
+  color?: string;
+  duration?: number;
+  stagger?: number;
+  onComplete?: () => void;
+  className?: string;
 }
 
 const AnimatedFoldText = forwardRef<HTMLDivElement, AnimatedFoldTextProps>(
-  ({ text, fontSize, highlightWords, active, align = "center" }, ref) => {
-    
+  (
+    {
+      text,
+      fontSize,
+      fontWeight = 300,
+      highlightWords,
+      active = true,
+      mode = "in",
+      align = "center",
+      color = "#ffffff",
+      duration = 1.2,
+      stagger = 0.025,
+      onComplete,
+      className = "",
+    },
+    ref
+  ) => {
     // Determine justification based on align prop
     let justifyClass = "justify-center";
     let textClass = "text-center";
@@ -26,19 +48,24 @@ const AnimatedFoldText = forwardRef<HTMLDivElement, AnimatedFoldTextProps>(
     }
 
     return (
-      <div ref={ref} className={`min-h-[1.2em] flex w-full ${textClass} ${justifyClass}`}>
+      <div
+        ref={ref}
+        className={`min-h-[1.2em] flex w-full ${textClass} ${justifyClass} ${className}`.trim()}
+      >
         {active && (
           <FoldText
             text={text}
             trigger="mount"
             splitBy="char"
-            duration={1.5}
-            stagger={0.03}
+            duration={duration}
+            stagger={stagger}
             fontSize={fontSize}
-            fontWeight={300}
-            color="#ffffff"
+            fontWeight={fontWeight}
+            color={color}
+            mode={mode}
+            onComplete={onComplete}
             highlightWords={highlightWords}
-            className={`select-none font-montserrat font-light tracking-[0.04em] [word-spacing:0.1em] ${textClass}`}
+            className={`select-none font-montserrat tracking-[0.03em] [word-spacing:0.1em] ${textClass}`}
           />
         )}
       </div>
