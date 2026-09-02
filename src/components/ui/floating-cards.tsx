@@ -20,6 +20,7 @@ import {
 } from "framer-motion";
 import Floating, { FloatingElement } from "@/components/ui/parallax-floating";
 import { BorderGlow } from "@/components/ui/border-glow";
+import GlassSurface from "@/components/ui/glass-surface";
 import problemData from "../../../public/content/problem.json";
 import { smoothstep } from "@/lib/utils";
 
@@ -63,7 +64,13 @@ const CardFront = ({ card }: { card: CardItem }) => {
   );
 };
 
-const CardBack = ({ card, isExpanded = false }: { card: CardItem; isExpanded?: boolean }) => {
+interface CardBackProps {
+  card: CardItem;
+  isExpanded?: boolean;
+  mousePos?: { x: number; y: number };
+}
+
+const CardBack = ({ card, isExpanded = false, mousePos }: CardBackProps) => {
   let titleScale = "text-[5cqmin]";
   let bulletScale = "text-[5cqmin]";
 
@@ -81,18 +88,34 @@ const CardBack = ({ card, isExpanded = false }: { card: CardItem; isExpanded?: b
     bulletScale = "text-xs sm:text-sm md:text-base lg:text-lg"; // slightly smaller
   }
 
-  // Identical text style to the sentences
-  const baseTextClass = "font-sans font-light tracking-wide text-neutral-300";
+  // Identical text style to the centered sentences
+  const baseTextClass = isExpanded
+    ? "font-montserrat font-light tracking-[0.03em] text-neutral-200"
+    : "font-montserrat font-light tracking-[0.03em] text-neutral-300";
 
   const Content = (
-    <div className={`flex-1 flex flex-col justify-center overflow-hidden relative z-10 ${isExpanded ? "p-8 md:p-12 gap-6" : "p-[6cqmin] py-[2cqmin] gap-[2cqmin]"}`}>
+    <div
+      className={`flex-1 flex flex-col justify-center relative z-10 ${
+        isExpanded
+          ? "p-8 md:p-12 gap-6"
+          : "p-[6cqmin] py-[2cqmin] gap-[2cqmin]"
+      }`}
+    >
       {card.challengeTitle && (
-        <p className={`${baseTextClass} ${titleScale} leading-tight ${isExpanded ? "mb-4 md:mb-6" : ""}`}>
+        <p
+          className={`${baseTextClass} ${titleScale} font-normal text-white leading-tight ${
+            isExpanded ? "mb-4 md:mb-6" : ""
+          }`}
+        >
           {card.challengeTitle}
         </p>
       )}
       {card.challengeBullets && card.challengeBullets.length > 0 && (
-        <ul className={`list-disc list-outside ml-[1.5em] flex flex-col ${baseTextClass} ${bulletScale} ${isExpanded ? "gap-3" : "gap-[2cqmin]"}`}>
+        <ul
+          className={`list-disc list-outside ml-[1.5em] flex flex-col ${baseTextClass} ${bulletScale} ${
+            isExpanded ? "gap-3" : "gap-[2cqmin]"
+          }`}
+        >
           {card.challengeBullets.map((bullet, i) => (
             <li key={i} className="pl-[0.5em] leading-snug">
               {bullet}
@@ -102,7 +125,7 @@ const CardBack = ({ card, isExpanded = false }: { card: CardItem; isExpanded?: b
       )}
       {card.closingLine && (
         <p
-          className={`${baseTextClass} ${titleScale} text-center leading-relaxed mt-auto closing-line-gradient`}
+          className={`font-sans ${titleScale} font-normal text-center leading-relaxed mt-auto closing-line-gradient`}
         >
           {card.closingLine}
         </p>
@@ -110,16 +133,28 @@ const CardBack = ({ card, isExpanded = false }: { card: CardItem; isExpanded?: b
     </div>
   );
 
-    if (isExpanded) {
-      return (
+  if (isExpanded) {
+    return (
+      <div className="absolute inset-0 w-full h-full rounded-none shadow-2xl [transform:rotateY(180deg)] [backface-visibility:hidden] [container-type:size]">
         <BorderGlow
-          className="absolute inset-0 w-full h-full rounded-none shadow-xl [transform:rotateY(180deg)] [backface-visibility:hidden] [container-type:size] backdrop-blur-md"
-          backgroundColor="rgba(10, 10, 15, 0.40)"
+          className="w-full h-full rounded-none"
+          borderRadius={0}
+          backgroundColor="transparent"
+          glowIntensity={2.8}
+          glowRadius={60}
+          edgeSensitivity={10}
+          coneSpread={40}
+          fillOpacity={0.9}
+          colors={['#c084fc', '#f472b6', '#38bdf8', '#818cf8']}
+          customMousePosition={mousePos}
         >
-          {Content}
+          <GlassSurface className="w-full h-full rounded-none">
+            {Content}
+          </GlassSurface>
         </BorderGlow>
-      );
-    }
+      </div>
+    );
+  }
 
   return (
     <div className="absolute inset-0 w-full h-full rounded-none overflow-hidden shadow-xl bg-neutral-950 border border-neutral-800 [transform:rotateY(180deg)] [backface-visibility:hidden] [container-type:size]">
@@ -243,7 +278,6 @@ const ZoomedCard = ({
   onClose: () => void;
 }) => {
   const { card, rect } = overlayData;
-  const [isHovered, setIsHovered] = useState(false);
   const [windowSize, setWindowSize] = useState({
     w: typeof window !== "undefined" ? window.innerWidth : 1000,
     h: typeof window !== "undefined" ? window.innerHeight : 1000,
@@ -258,36 +292,31 @@ const ZoomedCard = ({
 
   const rx = useMotionValue(0);
   const ry = useMotionValue(0);
-  const gx = useMotionValue(50);
-  const gy = useMotionValue(50);
 
-  const SPRING_MOUSE = { stiffness: 200, damping: 15, mass: 0.3 };
+  const SPRING_MOUSE = { stiffness: 220, damping: 18, mass: 0.3 };
 
   const srx = useSpring(rx, SPRING_MOUSE);
   const sry = useSpring(ry, SPRING_MOUSE);
+
+  const [mousePos, setMousePos] = useState<{ x: number; y: number } | undefined>(undefined);
 
   const onMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
     const r = el.getBoundingClientRect();
     const px = (e.clientX - r.left) / r.width;
     const py = (e.clientY - r.top) / r.height;
-    const max = 12;
+    // Enhanced 22deg tilt range for distinct 3D optical parallax
+    const max = 22;
     ry.set((0.5 - px) * max);
     rx.set((0.5 - py) * max);
-    gx.set(px * 100);
-    gy.set(py * 100);
+    setMousePos({ x: e.clientX, y: e.clientY });
   };
-
-  const onEnter = () => setIsHovered(true);
 
   const onLeave = () => {
-    setIsHovered(false);
     rx.set(0);
     ry.set(0);
-    // Remove gx and gy reset so the glare fades out exactly where the mouse left
+    setMousePos(undefined);
   };
-
-  const glareBg = useMotionTemplate`radial-gradient(circle at ${gx}% ${gy}%, rgba(255,255,255,0.12), transparent 50%)`;
 
   // Compute target centered position
   let targetHeight = windowSize.h * 0.6;
@@ -373,21 +402,15 @@ const ZoomedCard = ({
           exit={{ rotateY: 0 }}
           transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
           onClick={onClose}
-          onMouseEnter={onEnter}
           onMouseMove={onMove}
           onMouseLeave={onLeave}
         >
           <motion.div
-            className="absolute inset-0 w-full h-full [transform-style:preserve-3d]"
+            className="absolute inset-0 w-full h-full [transform-style:preserve-3d] rounded-none"
             style={{ rotateX: srx, rotateY: sry }}
           >
             <CardFront card={card} />
-            <CardBack card={card} isExpanded={true} />
-            <motion.div
-              aria-hidden
-              className="absolute inset-0 pointer-events-none [transform:rotateY(180deg)] [backface-visibility:hidden] transition-opacity duration-500"
-              style={{ background: glareBg, opacity: isHovered ? 1 : 0 }}
-            />
+            <CardBack card={card} isExpanded={true} mousePos={mousePos} />
           </motion.div>
         </motion.div>
       </motion.div>
