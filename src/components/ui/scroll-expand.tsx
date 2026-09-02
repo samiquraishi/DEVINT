@@ -6,12 +6,19 @@ import HeroSection from "@/app/pages/landing-page/sections/hero";
 import TransitionSection from "@/app/pages/landing-page/sections/transition";
 import ProblemSection, { ProblemSectionRef } from "@/app/pages/landing-page/sections/problem";
 import type { GlowingOrbHandle } from "./glowing-orb";
+import { clamp, smoothstep } from "@/lib/utils";
 
-const clamp = (v: number, a: number, b: number): number => (v < a ? a : v > b ? b : v);
-
-const smoothstep = (edge0: number, edge1: number, x: number): number => {
-  const t = clamp((x - edge0) / (edge1 - edge0 || 1e-6), 0, 1);
-  return t * t * (3 - 2 * t);
+const applyCharAnimation = (container: HTMLElement, phaseT: number) => {
+  const chars = container.querySelectorAll<HTMLElement>("[data-fold-char]");
+  chars.forEach((span) => {
+    const charNorm = parseFloat(span.getAttribute("data-char-norm") || "0");
+    const staggerStart = charNorm * 0.52;
+    const charDuration = 0.48;
+    const raw = clamp((phaseT - staggerStart) / charDuration, 0, 1);
+    const eased = raw * (2 - raw);
+    span.style.transform = `rotateX(${(1 - eased) * -90}deg)`;
+    span.style.opacity = `${eased}`;
+  });
 };
 
 type ConfigKey =
@@ -182,6 +189,17 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
         const out2 = smoothstep(0.12, 0.16, pTotal);
         text2Ref.current.style.opacity = `${1 - out2}`;
         text2Ref.current.style.transform = `scale(${1 + 0.15 * out2})`;
+
+        // Line 1: 0.04 -> 0.08
+        const phase1T = (pTotal - 0.04) / 0.04;
+        // Line 2 (subtext): slightly delayed, 0.075 -> 0.115
+        const phase2T = (pTotal - 0.075) / 0.04;
+
+        const textWrapper = text2Ref.current.children[0];
+        if (textWrapper && textWrapper.children.length >= 2) {
+          applyCharAnimation(textWrapper.children[0] as HTMLElement, phase1T);
+          applyCharAnimation(textWrapper.children[1] as HTMLElement, phase2T);
+        }
       } else {
         text2Ref.current.style.opacity = "0";
         text2Ref.current.style.display = "none";
@@ -203,12 +221,13 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
       if (active3) {
         el.style.display = "flex";
 
-        // Fade in gently
-        const fadeIn3 = smoothstep(0.16, 0.20, pTotal);
         // Fade out before orb engulfs everything
         const fadeOut3 = smoothstep(0.26, 0.30, pTotal);
-        el.style.opacity = `${fadeIn3 * (1 - fadeOut3)}`;
+        el.style.opacity = `${1 - fadeOut3}`;
         el.style.transform = `scale(${1 + 0.15 * fadeOut3})`;
+
+        const phase3T = (pTotal - 0.16) / 0.04;
+        applyCharAnimation(el, phase3T);
       } else {
         el.style.opacity = "0";
         el.style.display = "none";
@@ -422,9 +441,6 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
             text2Ref={text2Ref}
             text3Ref={text3Ref}
             orbRef={orbRef}
-            activeLine1={renderText2}
-            activeLine2={renderLine2}
-            activeLine3={renderText3}
           />
           <ProblemSection
             ref={problemRef}

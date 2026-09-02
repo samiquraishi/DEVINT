@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, type CSSProperties, type ReactNode, useState } from "react";
 import { gsap } from "gsap";
+import { clamp } from "@/lib/utils";
 
 type SplitBy = "char" | "word" | "line";
 type Hinge = "top" | "bottom" | "left" | "right";
@@ -42,8 +43,6 @@ const HINGE_CONFIG: Record<Hinge, HingeConfig> = {
   right: { origin: "100% 50%", rotateX: 0, rotateY: -92 },
 };
 
-const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
-
 const renderWhitespace = (value: string, key: string): ReactNode[] =>
   value.split(/(\n)/).map((part, index) => {
     if (part === "\n") return <br key={`${key}-br-${index}`} />;
@@ -55,96 +54,6 @@ const renderWhitespace = (value: string, key: string): ReactNode[] =>
       </span>
     );
   });
-
-const FOLD_TEXT_STYLES = `.fold-text {
-  display: inline-block;
-  color: var(--fold-text-color, currentColor);
-  font-size: var(--fold-text-font-size, inherit);
-  font-weight: var(--fold-text-font-weight, inherit);
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-  white-space: pre-wrap;
-  user-select: text;
-}
-
-.fold-text-sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-
-.fold-text-visual {
-  display: inline;
-}
-
-.fold-text-line {
-  display: block;
-}
-
-.fold-text-whitespace {
-  display: inline;
-}
-
-.fold-text-segment {
-  display: inline-block;
-  line-height: inherit;
-  perspective: var(--fold-perspective, 700px);
-  transform-style: preserve-3d;
-  vertical-align: baseline;
-}
-
-.fold-text-segment[data-fold-split='line'] {
-  display: block;
-}
-
-.fold-text-piece {
-  position: relative;
-  display: inline-block;
-  color: inherit;
-  line-height: inherit;
-  transform-style: preserve-3d;
-  backface-visibility: hidden;
-  will-change: transform, opacity;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fold-text-piece {
-    transform: none !important;
-  }
-}
-
-.fold-text-highlight {
-  font-family: 'LEMON MILK', 'Lemon Milk', 'Syncopate', sans-serif !important;
-  font-weight: 300 !important;
-  font-size: 0.88em;
-  background: linear-gradient(
-    135deg,
-    #ff8a8a 10%,  /* light red */
-    #a29bfe 45%,  /* light purple */
-    #82b1ff 80%,  /* light blue */
-    #ff8a8a 100%
-  );
-  background-size: var(--bg-size, 200%) 400%;
-  background-position-x: var(--bg-x, 0%) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  color: transparent !important;
-  animation: rainbow-shine-y 4s linear infinite;
-  display: inline-block;
-}
-
-@keyframes rainbow-shine-y {
-  0% { background-position-y: 0%; }
-  50% { background-position-y: 100%; }
-  100% { background-position-y: 0%; }
-}
-`;
 
 export default function FoldText({
   text = "Design unfolds",
@@ -391,7 +300,6 @@ export default function FoldText({
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: FOLD_TEXT_STYLES }} />
       <span ref={rootRef} className={`fold-text ${className}`.trim()} style={rootStyle}>
         <span className="fold-text-sr-only">{text}</span>
         <span className="fold-text-visual" aria-hidden="true">

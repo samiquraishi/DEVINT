@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useRef, useEffect, useCallback, useState } from "react"
+import { useRef, useEffect, useCallback } from "react"
 
 export interface Position {
   x: number
@@ -47,8 +47,6 @@ export function SVGFollower({
   const svgRef = useRef<SVGSVGElement>(null)
   const followersRef = useRef<Follower[]>([])
   const animationRef = useRef<number>(undefined)
-  const [isRecording, setIsRecording] = useState(false)
-  const recordingRef = useRef<Position[]>([])
 
   class Follower {
     private points: Point[] = []
@@ -340,15 +338,6 @@ export function SVGFollower({
     };
   }, [colors, shapeFrequency, shapeMode, maxTurnAngle, trailWidth]);
 
-  const startRecording = () => {
-    recordingRef.current = []
-    setIsRecording(true)
-  }
-
-  const stopRecording = () => {
-    setIsRecording(false)
-  }
-
   const animate = useCallback(() => {
     followersRef.current.forEach((follower) => follower.trim())
     animationRef.current = requestAnimationFrame(animate)
@@ -385,10 +374,7 @@ export function SVGFollower({
         width: typeof width === "number" ? `${width}px` : width,
         height: typeof height === "number" ? `${height}px` : height,
       }}
-      onMouseDown={startRecording}
-      onMouseUp={stopRecording}
-      onTouchStart={startRecording}
-      onTouchEnd={stopRecording}
+
     >
       <svg
         ref={svgRef}
