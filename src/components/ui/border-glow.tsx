@@ -118,6 +118,8 @@ export const BorderGlow = ({
 
     card.style.setProperty('--edge-proximity', `${(edge * 100).toFixed(3)}`);
     card.style.setProperty('--cursor-angle', `${angle.toFixed(3)}deg`);
+    card.style.setProperty('--cursor-x', `${x}px`);
+    card.style.setProperty('--cursor-y', `${y}px`);
   }, [getEdgeProximity, getCursorAngle]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
@@ -152,6 +154,7 @@ export const BorderGlow = ({
     >
       <span className="edge-light" />
       <span className="edge-mesh-border" />
+      <span className="edge-inner-glow" />
       <div className="border-glow-inner">
         {children}
       </div>
