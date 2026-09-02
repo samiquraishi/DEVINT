@@ -21,6 +21,7 @@ import {
 import Floating, { FloatingElement } from "@/components/ui/parallax-floating";
 import { BorderGlow } from "@/components/ui/border-glow";
 import problemData from "../../../public/content/problem.json";
+import { smoothstep } from "@/lib/utils";
 
 export interface CardItem {
   id: string;
@@ -48,27 +49,6 @@ export interface FloatingCardsProps {
   className?: string;
   sensitivity?: number;
 }
-
-/* ── Inject keyframes for the Devint gradient animation ── */
-const CARD_STYLES = `
-@keyframes rainbow-shine-x {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-`;
-
-/* ── Devint gradient style for closing lines ── */
-const CLOSING_LINE_GRADIENT: React.CSSProperties = {
-  background:
-    "linear-gradient(90deg, #ff8a8a 0%, #a29bfe 33%, #82b1ff 66%, #ff8a8a 100%)",
-  backgroundSize: "300% 100%",
-  WebkitBackgroundClip: "text",
-  WebkitTextFillColor: "transparent",
-  backgroundClip: "text",
-  color: "transparent",
-  animation: "rainbow-shine-x 4s linear infinite",
-};
 
 const CardFront = ({ card }: { card: CardItem }) => {
   return (
@@ -122,8 +102,7 @@ const CardBack = ({ card, isExpanded = false }: { card: CardItem; isExpanded?: b
       )}
       {card.closingLine && (
         <p
-          className={`${baseTextClass} ${titleScale} text-center leading-relaxed mt-auto`}
-          style={CLOSING_LINE_GRADIENT}
+          className={`${baseTextClass} ${titleScale} text-center leading-relaxed mt-auto closing-line-gradient`}
         >
           {card.closingLine}
         </p>
@@ -148,12 +127,6 @@ const CardBack = ({ card, isExpanded = false }: { card: CardItem; isExpanded?: b
     </div>
   );
 };
-
-/* ── Smooth eased interpolation helper ── */
-function smoothstep(edge0: number, edge1: number, x: number): number {
-  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
-  return t * t * (3 - 2 * t);
-}
 
 interface FlippableCardProps {
   card: CardItem;
@@ -481,7 +454,6 @@ export const FloatingCards = forwardRef<FloatingCardsRef, FloatingCardsProps>(
 
     return (
       <div className={`absolute inset-0 pointer-events-none select-none ${className}`}>
-        <style dangerouslySetInnerHTML={{ __html: CARD_STYLES }} />
         <Floating 
           sensitivity={sensitivity} 
           className="overflow-hidden"

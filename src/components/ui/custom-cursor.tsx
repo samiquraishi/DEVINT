@@ -76,17 +76,12 @@ export default function CustomCursor() {
             {/* Outer ring pulsing only when hovering over interactive elements, with mix-blend-difference */}
             {isHoveringInteractable && (
               <div
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-[1.5px] border-white mix-blend-difference pointer-events-none transition-all duration-150 animate-pulse"
-                style={{
-                  width: "14px",
-                  height: "14px",
-                }}
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-[1.5px] border-white mix-blend-difference pointer-events-none transition-all duration-150 animate-pulse w-[14px] h-[14px]"
               />
             )}
             {/* Center Red Dot pointer - turns darker shade of red on click */}
             <div
-              style={{ width: "9px", height: "9px" }}
-              className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-colors duration-150 ease-out ${
+              className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-colors duration-150 ease-out w-[9px] h-[9px] ${
                 isPointerDown ? "bg-red-800" : "bg-red-500"
               }`}
             />

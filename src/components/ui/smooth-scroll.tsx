@@ -7,33 +7,37 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 export default function SmoothScroll({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    // Register GSAP ScrollTrigger plugin
     gsap.registerPlugin(ScrollTrigger);
 
-    // Initialize Lenis
     const lenis = new Lenis({
       duration: 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // Custom inertia curve
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: "vertical",
       gestureOrientation: "vertical",
       smoothWheel: true,
     });
 
-    // Update ScrollTrigger when Lenis scrolls
     lenis.on("scroll", ScrollTrigger.update);
 
-    // Hook Lenis raf into GSAP ticker
     const updateTicker = (time: number) => {
       lenis.raf(time * 1000);
     };
     gsap.ticker.add(updateTicker);
-    gsap.ticker.lagSmoothing(0);
+
+    // Allow GSAP to recover gracefully from frame drops (e.g. Vercel CDN first-load jank).
+    // lagSmoothing(0) disabled recovery and caused stutters on production.
+    gsap.ticker.lagSmoothing(500, 33);
+
+    // Refresh scroll bounds after all fonts and images have loaded,
+    // so ScrollTrigger positions match the final document height.
+    const onLoad = () => ScrollTrigger.refresh();
+    window.addEventListener("load", onLoad);
 
     return () => {
-      // Clean up on unmount
       lenis.destroy();
       gsap.ticker.remove(updateTicker);
       ScrollTrigger.killAll();
+      window.removeEventListener("load", onLoad);
     };
   }, []);
 

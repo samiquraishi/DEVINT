@@ -60,7 +60,7 @@ export default function LandingPage() {
           mediaZoom={1.0}
           scrollDistance={2.0}
           holdDistance={26.0}
-          smoothing={0.1}
+          smoothing={0}
           overlayScrim={0.0}
           useWindowScroll={true}
         />

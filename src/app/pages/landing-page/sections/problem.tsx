@@ -4,6 +4,7 @@ import React, { forwardRef, useImperativeHandle, useRef } from "react";
 import SphereGrid, { SphereGridRef } from "@/components/ui/sphere-grid";
 import FloatingCards, { FloatingCardsRef } from "@/components/ui/floating-cards";
 import problemData from "../../../../../public/content/problem.json";
+import { clamp } from "@/lib/utils";
 
 export interface ProblemSectionRef {
   updateProgress: (pTotal: number) => void;
@@ -15,36 +16,6 @@ export interface ProblemSectionProps {
   className?: string;
   children?: React.ReactNode;
 }
-
-const clamp = (val: number, min: number, max: number) => Math.min(max, Math.max(min, val));
-
-const PROBLEM_FOLD_STYLES = `
-.fold-text-highlight {
-  font-family: 'LEMON MILK', 'Lemon Milk', 'Syncopate', sans-serif !important;
-  font-weight: 300 !important;
-  font-size: 0.88em !important;
-  background: linear-gradient(
-    135deg,
-    #ff8a8a 10%,  /* light red */
-    #a29bfe 45%,  /* light purple */
-    #82b1ff 80%,  /* light blue */
-    #ff8a8a 100%
-  ) !important;
-  background-size: var(--bg-size, 200%) 400% !important;
-  background-position-x: var(--bg-x, 0%) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  color: transparent !important;
-  animation: rainbow-shine-y 4s linear infinite !important;
-  display: inline-block !important;
-}
-
-@keyframes rainbow-shine-y {
-  0% { background-position-y: 0%; }
-  50% { background-position-y: 100%; }
-  100% { background-position-y: 0%; }
-}
-`;
 
 interface StatementProps {
   title: string;
@@ -231,7 +202,6 @@ export const ProblemSection = forwardRef<ProblemSectionRef, ProblemSectionProps>
         ref={containerRef}
         className={`absolute inset-0 z-[45] flex items-center justify-center w-full h-full overflow-hidden opacity-0 pointer-events-none [will-change:opacity,transform] ${className}`}
       >
-        <style dangerouslySetInnerHTML={{ __html: PROBLEM_FOLD_STYLES }} />
         <div className="relative w-full h-full bg-[#f4f4f5] overflow-hidden">
           {/* 3D Sphere Grid Background */}
           <SphereGrid
