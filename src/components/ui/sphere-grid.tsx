@@ -87,6 +87,13 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
     const lastPTotalRef = useRef<number | null>(null);
     const scrollVelocityRef = useRef(0);
 
+    // Track isActive via ref so the RAF loop can check it without being in the
+    // heavy useEffect dependency array (which would teardown/recreate the canvas).
+    const isActiveRef = useRef(isActive);
+    useEffect(() => {
+      isActiveRef.current = isActive;
+    }, [isActive]);
+
     useImperativeHandle(ref, () => ({
       updateScroll(pTotal: number) {
         if (lastPTotalRef.current === null) {
@@ -205,8 +212,9 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
     }
 
     const render = () => {
-      if (!isActive) {
-        animationFrameId = null;
+      if (!isActiveRef.current) {
+        // Keep loop alive so it resumes instantly when activated
+        animationFrameId = requestAnimationFrame(render);
         return;
       }
 
@@ -433,9 +441,8 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
       animationFrameId = requestAnimationFrame(render);
     };
 
-    if (isActive) {
-      animationFrameId = requestAnimationFrame(render);
-    }
+    // Always start loop — render() will idle when isActiveRef.current is false
+    animationFrameId = requestAnimationFrame(render);
 
     return () => {
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
@@ -444,7 +451,7 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
       window.removeEventListener("pointermove", handlePointerMove);
       document.removeEventListener("mouseleave", handlePointerLeave);
     };
-  }, [gridCols, gridRows, maxElevation, elevationSmoothing, gapRatio, bgRGB, parallaxStrength, isActive, backgroundColor]);
+  }, [gridCols, gridRows, maxElevation, elevationSmoothing, gapRatio, bgRGB, parallaxStrength, backgroundColor]);
 
   return (
     <div
