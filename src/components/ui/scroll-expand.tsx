@@ -5,6 +5,7 @@ import type { CSSProperties, ReactNode } from "react";
 import HeroSection from "@/app/pages/landing-page/sections/hero";
 import TransitionSection from "@/app/pages/landing-page/sections/transition";
 import ProblemSection, { ProblemSectionRef } from "@/app/pages/landing-page/sections/problem";
+import OfferingSection, { OfferingSectionRef } from "@/app/pages/landing-page/sections/offering";
 import type { GlowingOrbHandle } from "./glowing-orb";
 import { clamp, smoothstep } from "@/lib/utils";
 
@@ -104,16 +105,19 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
   const line3Ref = useRef<HTMLDivElement | null>(null);
   const orbRef = useRef<GlowingOrbHandle | null>(null);
   const problemRef = useRef<ProblemSectionRef | null>(null);
+  const offeringRef = useRef<OfferingSectionRef | null>(null);
 
   const showText2Ref = useRef(false);
   const showLine2Ref = useRef(false);
   const showText3Ref = useRef(false);
   const showProblemRef = useRef(false);
+  const showOfferingRef = useRef(false);
 
   const [renderText2, setRenderText2] = useState(false);
   const [renderLine2, setRenderLine2] = useState(false);
   const [renderText3, setRenderText3] = useState(false);
   const [problemActive, setProblemActive] = useState(false);
+  const [offeringActive, setOfferingActive] = useState(false);
 
   const propsRef = useRef<Required<Pick<ScrollExpandProps, ConfigKey>>>(
     {} as Required<Pick<ScrollExpandProps, ConfigKey>>
@@ -239,7 +243,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     }
 
     // Problem Section: SphereGrid appears as Text 3 finishes fading
-    const activeProblem = pTotal >= 0.28;
+    const activeProblem = pTotal >= 0.28 && pTotal <= 0.72;
     if (activeProblem !== showProblemRef.current) {
       showProblemRef.current = activeProblem;
       setProblemActive(activeProblem);
@@ -248,10 +252,12 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     if (problemRef.current) {
       const container = problemRef.current.container;
       if (container) {
-        if (pTotal >= 0.28) {
+        if (pTotal >= 0.28 && pTotal <= 0.72) {
           const problemFadeIn = smoothstep(0.28, 0.32, pTotal);
-          container.style.opacity = `${problemFadeIn}`;
-          if (pTotal >= 0.32) {
+          // Cross-fade out as the offering section fades in
+          const problemFadeOut = 1 - smoothstep(0.66, 0.72, pTotal);
+          container.style.opacity = `${Math.min(problemFadeIn, problemFadeOut)}`;
+          if (pTotal >= 0.32 && pTotal <= 0.66) {
             container.style.pointerEvents = "auto";
           } else {
             container.style.pointerEvents = "none";
@@ -261,8 +267,36 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
           container.style.pointerEvents = "none";
         }
       }
-      if (pTotal >= 0.28) {
+      if (pTotal >= 0.28 && pTotal <= 0.72) {
         problemRef.current.updateProgress(pTotal);
+      }
+    }
+
+    // Offering Section: Appears after Problem Section with a deliberate gap before Scene 1
+    const activeOffering = pTotal >= 0.68;
+    if (activeOffering !== showOfferingRef.current) {
+      showOfferingRef.current = activeOffering;
+      setOfferingActive(activeOffering);
+    }
+
+    if (offeringRef.current) {
+      const container = offeringRef.current.container;
+      if (container) {
+        if (pTotal >= 0.68) {
+          const offeringFadeIn = smoothstep(0.68, 0.72, pTotal);
+          container.style.opacity = `${offeringFadeIn}`;
+          if (pTotal >= 0.74) {
+            container.style.pointerEvents = "auto";
+          } else {
+            container.style.pointerEvents = "none";
+          }
+        } else {
+          container.style.opacity = "0";
+          container.style.pointerEvents = "none";
+        }
+      }
+      if (pTotal >= 0.68) {
+        offeringRef.current.updateProgress(pTotal);
       }
     }
 
@@ -445,6 +479,10 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
           <ProblemSection
             ref={problemRef}
             isActive={problemActive}
+          />
+          <OfferingSection
+            ref={offeringRef}
+            isActive={offeringActive}
           />
           {scrollHint ? (
             <div

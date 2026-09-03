@@ -1,0 +1,22 @@
+{
+  "scene1": {
+    "title": "SO, WHAT CAN WE BUILD?",
+    "subtitle": "From websites and apps to AI, automation, data and the systems that bring it all together.",
+    "highlights": ["BUILD"]
+  },
+  "scene2": {
+    "title": "WE BUILD THE DIGITAL PRODUCTS THAT BRING IDEAS TO LIFE.",
+    "subtitle": "From websites and apps to AI, automation, data and the systems that bring it all together.",
+    "highlights": ["PRODUCTS"]
+  },
+  "scene3": {
+    "title": "FROM DIGITAL EXPERIENCES TO INTELLIGENT SYSTEMS.",
+    "subtitle": "From websites and apps to AI, automation, data and the systems that bring it all together.",
+    "highlights": ["EXPERIENCES", "EXPERIENCE"]
+  },
+  "scene4": {
+    "title": "YOUR IDEA. BUILT BY DEVINT.",
+    "subtitle": "From websites and apps to AI, automation, data and the systems that bring it all together.",
+    "highlights": ["DEVINT"]
+  }
+}
