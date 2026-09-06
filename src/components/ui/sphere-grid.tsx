@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useCallback, forwardRef, useImperativeHandle 
 
 export interface SphereGridRef {
   updateScroll: (pTotal: number) => void;
+  updateDissolve: (progress: number) => void;
 }
 
 export interface SphereGridProps {
@@ -53,6 +54,10 @@ interface CellData {
   tTRx: number; tTRy: number;
   tBLx: number; tBLy: number;
   tBRx: number; tBRy: number;
+  fTLx: number; fTLy: number;
+  fTRx: number; fTRy: number;
+  fBLx: number; fBLy: number;
+  fBRx: number; fBRy: number;
 }
 
 export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
@@ -86,6 +91,8 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
 
     const lastPTotalRef = useRef<number | null>(null);
     const scrollVelocityRef = useRef(0);
+    const dissolveProgressRef = useRef(0);
+    const dissolveStartRowRef = useRef<number | null>(null);
 
     // Track isActive via ref so the RAF loop can check it without being in the
     // heavy useEffect dependency array (which would teardown/recreate the canvas).
@@ -102,8 +109,15 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
         }
         const delta = pTotal - lastPTotalRef.current;
         lastPTotalRef.current = pTotal;
-        // Negate delta: scrolling down (positive delta) should push grid upward (negative Y)
-        scrollVelocityRef.current -= delta * 2500;
+        // Faster scroll during erosion so remaining cubes cleanly exit off the top
+        const multiplier = pTotal >= 0.938 ? 5600 : 2500;
+        scrollVelocityRef.current -= delta * multiplier;
+      },
+      updateDissolve(progress: number) {
+        dissolveProgressRef.current = progress;
+        if (progress <= 0) {
+          dissolveStartRowRef.current = null;
+        }
       },
     }));
 
@@ -208,6 +222,8 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
         bBLx: 0, bBLy: 0, bBRx: 0, bBRy: 0,
         tTLx: 0, tTLy: 0, tTRx: 0, tTRy: 0,
         tBLx: 0, tBLy: 0, tBRx: 0, tBRy: 0,
+        fTLx: 0, fTLy: 0, fTRx: 0, fTRy: 0,
+        fBLx: 0, fBLy: 0, fBRx: 0, fBRy: 0,
       });
     }
 
@@ -247,8 +263,22 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
       const eyeX = parallaxRef.current.cx * (parallaxStrength * 0.7);
       const eyeY = parallaxRef.current.cy * (parallaxStrength * 0.7);
 
-      // Solid background fill
-      ctx.fillStyle = backgroundColor;
+      const dp = dissolveProgressRef.current;
+
+      // Canvas background fill:
+      // When normal (dp === 0), solid #f4f4f5.
+      // When dissolving (dp > 0), smooth Starfield radial vignette with zero grid lines.
+      if (dp > 0) {
+        const bgGrad = ctx.createRadialGradient(
+          width / 2, height / 2, 0,
+          width / 2, height / 2, Math.max(width, height) * 0.75
+        );
+        bgGrad.addColorStop(0, "rgb(8, 8, 26)");
+        bgGrad.addColorStop(1, "rgb(4, 4, 13)");
+        ctx.fillStyle = bgGrad;
+      } else {
+        ctx.fillStyle = backgroundColor;
+      }
       ctx.fillRect(0, 0, width, height);
 
       ctx.save();
@@ -285,6 +315,15 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
       const logicalOffsetY = Math.floor(rawOffsetY);
       const pixelOffsetY = (rawOffsetY - logicalOffsetY) * cellSize;
 
+      // Anchor the bottom visible row where missing cubes will begin entering
+      if (dp > 0 && dissolveStartRowRef.current === null) {
+        // gridRows - 1 is the bottom-most visible row currently on screen
+        dissolveStartRowRef.current = (gridRows - 1) - logicalOffsetY;
+      }
+
+      const EROSION_ROWS = 28; // Doubled scroll transition distance
+      const startMissingRow = dissolveStartRowRef.current;
+
       let cellCount = 0;
       const cellPool = cellPoolRef.current;
       const startX = (logicalWidth - gridCols * cellSize) / 2;
@@ -295,6 +334,31 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
         for (let col = -margin; col < gridCols + margin; col++) {
           const lCol = col - logicalOffsetX;
           const lRow = row - logicalOffsetY;
+
+          // Missing cubes logic:
+          // Cubes do not disappear on-screen. Instead, new rows scrolling in from below the viewport
+          // have an increasing chance of missing cubes, until all cubes run out and the grid vanishes.
+          let isMissing = false;
+          if (dp >= 1.0) {
+            isMissing = true;
+          } else if (dp > 0 && startMissingRow !== null) {
+            const dRow = lRow - startMissingRow;
+            if (dRow > 0) {
+              if (dRow >= EROSION_ROWS) {
+                isMissing = true;
+              } else {
+                // Starts immediately with ~8% missing in the very first incoming row so erosion is visible right as the sentence disappears
+                const baseChance = 0.08;
+                const missingChance = baseChance + (1 - baseChance) * Math.pow(dRow / EROSION_ROWS, 1.4);
+                isMissing = seededRandom(lCol + 555, lRow + 666) < missingChance;
+              }
+            }
+          }
+
+          // If a cube is missing, skip drawing it entirely so the smooth Starfield background shines through
+          if (isMissing) {
+            continue;
+          }
 
           const x = startX + col * cellSize + pixelOffsetX;
           const y = startY + row * cellSize + pixelOffsetY;
@@ -339,7 +403,7 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
           state.lastSeen = frameCount;
           const elev = state.elevation;
 
-          // Corner coordinates
+          // Corner coordinates for intact 3D cube
           const x1 = x + gap / 2;
           const x2 = x + cellSize - gap / 2;
           const y1 = y + gap / 2;
@@ -353,6 +417,20 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
           const bZ2 = D + C * (lx2 * lx2 + ly1 * ly1);
           const bZ3 = D + C * (lx1 * lx1 + ly2 * ly2);
           const bZ4 = D + C * (lx2 * lx2 + ly2 * ly2);
+
+          // Base floor coordinates (gap = 0 so adjacent intact cubes seamlessly join #f4f4f5 floor)
+          const fx1 = x;
+          const fx2 = x + cellSize;
+          const fy1 = y;
+          const fy2 = y + cellSize;
+
+          const flx1 = fx1 - (cx + eyeX); const fly1 = fy1 - (cy + eyeY);
+          const flx2 = fx2 - (cx + eyeX); const fly2 = fy2 - (cy + eyeY);
+
+          const fbZ1 = D + C * (flx1 * flx1 + fly1 * fly1);
+          const fbZ2 = D + C * (flx2 * flx2 + fly1 * fly1);
+          const fbZ3 = D + C * (flx1 * flx1 + fly2 * fly2);
+          const fbZ4 = D + C * (flx2 * flx2 + fly2 * fly2);
 
           // Normals & 3D Extrusion
           const nx1 = 2 * C * lx1; const ny1 = 2 * C * ly1; const len1 = Math.sqrt(nx1 * nx1 + ny1 * ny1 + 1);
@@ -388,6 +466,11 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
           item.bBLx = cx + eyeX + (lx1 / bZ3) * D; item.bBLy = cy + eyeY + (ly2 / bZ3) * D;
           item.bBRx = cx + eyeX + (lx2 / bZ4) * D; item.bBRy = cy + eyeY + (ly2 / bZ4) * D;
 
+          item.fTLx = cx + eyeX + (flx1 / fbZ1) * D; item.fTLy = cy + eyeY + (fly1 / fbZ1) * D;
+          item.fTRx = cx + eyeX + (flx2 / fbZ2) * D; item.fTRy = cy + eyeY + (fly1 / fbZ2) * D;
+          item.fBLx = cx + eyeX + (flx1 / fbZ3) * D; item.fBLy = cy + eyeY + (fly2 / fbZ3) * D;
+          item.fBRx = cx + eyeX + (flx2 / fbZ4) * D; item.fBRy = cy + eyeY + (fly2 / fbZ4) * D;
+
           item.tTLx = cx + eyeX + (tX1 / tZ1) * D; item.tTLy = cy + eyeY + (tY1 / tZ1) * D;
           item.tTRx = cx + eyeX + (tX2 / tZ2) * D; item.tTRy = cy + eyeY + (tY2 / tZ2) * D;
           item.tBLx = cx + eyeX + (tX3 / tZ3) * D; item.tBLy = cy + eyeY + (tY3 / tZ3) * D;
@@ -413,10 +496,14 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
       // Render solid 3D cubes with physically accurate inner-sphere perspective
       for (let i = 0; i < cellCount; i++) {
         const c = activeSlice[i];
+        
+        if (dp > 0) {
+          // Draw seamless #f4f4f5 floor under intact cube so gap between intact cubes stays light
+          drawQuad(ctx, c.fTLx, c.fTLy, c.fTRx, c.fTRy, c.fBRx, c.fBRy, c.fBLx, c.fBLy, backgroundColor);
+        }
+
         if (c.elev > 0.01) {
           // Horizontal visible side wall:
-          // In bottom-right / top-right (dx >= 0), viewer sees the RIGHT wall
-          // In bottom-left / top-left (dx < 0), viewer sees the LEFT wall
           if (c.dx >= 0) {
             drawQuad(ctx, c.bTRx, c.bTRy, c.bBRx, c.bBRy, c.tBRx, c.tBRy, c.tTRx, c.tTRy, cRightWall);
           } else {
@@ -424,8 +511,6 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
           }
 
           // Vertical visible side wall:
-          // In bottom-right / bottom-left (dy >= 0), viewer sees the BOTTOM wall
-          // In top-right / top-left (dy < 0), viewer sees the TOP wall
           if (c.dy >= 0) {
             drawQuad(ctx, c.bBLx, c.bBLy, c.bBRx, c.bBRy, c.tBRx, c.tBRy, c.tBLx, c.tBLy, cBottomWall);
           } else {

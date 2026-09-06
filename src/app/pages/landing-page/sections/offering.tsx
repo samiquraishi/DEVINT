@@ -121,6 +121,7 @@ export const OfferingSection = forwardRef<OfferingSectionRef, OfferingSectionPro
     const sc3Ref = useRef<HTMLDivElement>(null);
     const sc4Ref = useRef<HTMLDivElement>(null);
     const subtextRef = useRef<HTMLDivElement>(null);
+    const bgWrapperRef = useRef<HTMLDivElement>(null);
 
     useImperativeHandle(ref, () => ({
       get container() {
@@ -130,14 +131,13 @@ export const OfferingSection = forwardRef<OfferingSectionRef, OfferingSectionPro
         sphereGridRef.current?.updateScroll(pTotal);
         cylinderCardsRef.current?.updateProgress(pTotal);
 
-        // Bands for the 4 scenes:
-        // Scene 1 starts at 0.740 to ensure a clear gap after Problem section ends (~0.68)
-        // Band width: 0.055, Gap between scenes: 0.018
+        // Bands for the 4 scenes (compressed to end at 0.940, freeing 0.940–1.000 for dissolve):
+        // Original span 0.260 scaled by 200/260 ≈ 0.769
         const sceneBands = [
-          { ref: sc1Ref, start: 0.740, end: 0.795 },
-          { ref: sc2Ref, start: 0.813, end: 0.868 },
-          { ref: sc3Ref, start: 0.886, end: 0.941 },
-          { ref: sc4Ref, start: 0.959, end: 1.000 },
+          { ref: sc1Ref, start: 0.740, end: 0.782 },
+          { ref: sc2Ref, start: 0.796, end: 0.838 },
+          { ref: sc3Ref, start: 0.852, end: 0.895 },
+          { ref: sc4Ref, start: 0.909, end: 0.940 },
         ];
 
         // Animate titles
@@ -198,9 +198,9 @@ export const OfferingSection = forwardRef<OfferingSectionRef, OfferingSectionPro
         const subtextEl = subtextRef.current;
         if (subtextEl) {
           const subtextStartIn = 0.740;
-          const subtextEndIn = 0.740 + 0.055 * 0.18;
-          const subtextStartOut = 0.959 + 0.041 * 0.82;
-          const subtextEndOut = 1.000;
+          const subtextEndIn = 0.740 + 0.042 * 0.18;
+          const subtextStartOut = 0.909 + 0.031 * 0.82;
+          const subtextEndOut = 0.940;
 
           if (pTotal >= subtextStartIn && pTotal <= subtextEndOut) {
             subtextEl.style.display = "flex";
@@ -245,6 +245,16 @@ export const OfferingSection = forwardRef<OfferingSectionRef, OfferingSectionPro
             subtextEl.style.display = "none";
           }
         }
+
+        // Dissolve phase: cubes vanish as soon as last sentence disappears (0.938 → 1.000)
+        const dissolveStart = 0.938;
+        const dissolveEnd = 1.000;
+        if (pTotal >= dissolveStart) {
+          const dissolveProgress = clamp((pTotal - dissolveStart) / (dissolveEnd - dissolveStart), 0, 1);
+          sphereGridRef.current?.updateDissolve(dissolveProgress);
+        } else {
+          sphereGridRef.current?.updateDissolve(0);
+        }
       },
     }));
 
@@ -253,7 +263,7 @@ export const OfferingSection = forwardRef<OfferingSectionRef, OfferingSectionPro
         ref={containerRef}
         className={`absolute inset-0 z-[45] flex items-center justify-center w-full h-full overflow-hidden opacity-0 pointer-events-none [will-change:opacity,transform] ${className}`}
       >
-        <div className="relative w-full h-full bg-[#f4f4f5] overflow-hidden">
+        <div ref={bgWrapperRef} className="relative w-full h-full bg-[#f4f4f5] overflow-hidden">
           {/* 3D Sphere Grid Background */}
           <SphereGrid
             ref={sphereGridRef}
