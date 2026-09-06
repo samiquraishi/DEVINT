@@ -27,7 +27,7 @@ export const CylinderCards = forwardRef<CylinderCardsRef, CylinderCardsProps>(
         const el = containerRef.current;
 
         const startRise = 0.740;
-        const endFall = 1.000;
+        const endFall = 0.940;
         
         // Update 3D scene scroll progress state
         const rawProgress = clamp((pTotal - startRise) / (endFall - startRise), 0, 1);
@@ -37,23 +37,8 @@ export const CylinderCards = forwardRef<CylinderCardsRef, CylinderCardsProps>(
           el.style.display = "block";
           if (frontContainerRef.current) frontContainerRef.current.style.display = "block";
           
-          let opacity = 0;
-
-          // Fade in over a short distance
-          const endFadeIn = startRise + 0.025;
-          // Fade out over a short distance
-          const startFadeOut = endFall - 0.025;
-
-          if (pTotal < endFadeIn) {
-            opacity = clamp((pTotal - startRise) / (endFadeIn - startRise), 0, 1);
-          } else if (pTotal > startFadeOut) {
-            opacity = 1 - clamp((pTotal - startFadeOut) / (endFall - startFadeOut), 0, 1);
-          } else {
-            opacity = 1;
-          }
-
-          el.style.opacity = opacity.toString();
-          if (frontContainerRef.current) frontContainerRef.current.style.opacity = opacity.toString();
+          el.style.opacity = "1";
+          if (frontContainerRef.current) frontContainerRef.current.style.opacity = "1";
         } else {
           el.style.display = "none";
           if (frontContainerRef.current) frontContainerRef.current.style.display = "none";
@@ -67,7 +52,7 @@ export const CylinderCards = forwardRef<CylinderCardsRef, CylinderCardsProps>(
         <div
           ref={containerRef}
           className={`absolute inset-0 pointer-events-auto [will-change:opacity] ${className}`}
-          style={{ display: "none", opacity: 0, zIndex: 10 }} // z-10 is behind text
+          style={{ display: "none", opacity: 1, zIndex: 10 }} // z-10 is behind text
         >
           <Scene
             autoScroll={false}
@@ -84,7 +69,7 @@ export const CylinderCards = forwardRef<CylinderCardsRef, CylinderCardsProps>(
         <div
           ref={frontContainerRef}
           className={`absolute inset-0 pointer-events-none [will-change:opacity] ${className}`}
-          style={{ display: "none", opacity: 0, zIndex: 20 }} // z-20 is in front of text
+          style={{ display: "none", opacity: 1, zIndex: 20 }} // z-20 is in front of text
         >
           <Scene
             autoScroll={false}

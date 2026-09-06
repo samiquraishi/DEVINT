@@ -255,11 +255,12 @@ export function Gallery({
     
     // We want the cylinder to appear from the BOTTOM and go towards the TOP on scroll down.
     // In ThreeJS, positive Y is UP. So cards should start at a negative Y (below viewport) and move to positive Y.
-    const START_Y = -12.5; // Staged below bottom viewport edge at scrollOffset = 0 (clean white screen)
+    const OFFSCREEN_Y = 22.0; // Ensures highest ring is completely below viewport frustum at scrollOffset = 0
+    const START_Y = -OFFSCREEN_Y;
     
     // Calculate total height needed.
     const TOTAL_Y_STEPS = NUM_CYCLES;
-    const MAX_SCROLL_OFFSET = Math.abs(START_Y) + (TOTAL_Y_STEPS - 1) * PANEL_SPACING_Y + 12.5; // Exits top (+12.5)
+    const MAX_SCROLL_OFFSET = OFFSCREEN_Y + (TOTAL_Y_STEPS - 1) * PANEL_SPACING_Y + OFFSCREEN_Y; // Exits top (+OFFSCREEN_Y)
 
     // Create invisible hit meshes for each ring to detect hover anywhere on the ring
     const ringHitMeshes: THREE.Mesh[] = [];
