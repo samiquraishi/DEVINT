@@ -340,6 +340,9 @@ export function Gallery({
         blendEquation: THREE.AddEquation,
         blendSrc: THREE.OneMinusDstColorFactor,
         blendDst: THREE.OneMinusSrcAlphaFactor,
+        blendEquationAlpha: THREE.AddEquation,
+        blendSrcAlpha: THREE.ZeroFactor,
+        blendDstAlpha: THREE.OneFactor,
       });
 
       const panelGroup = new THREE.Group();
