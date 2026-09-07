@@ -186,27 +186,31 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
       setRenderLine2(activeLine2);
     }
 
-    if (text2Ref.current) {
+    // Drive both text2 layers (Layer A: mix-blend-difference, Layer B: rainbow overlay)
+    const text2Overlay = stageRef.current?.querySelector<HTMLElement>("[data-text2-overlay]");
+    const text2Layers = [text2Ref.current, text2Overlay].filter(Boolean) as HTMLElement[];
+
+    for (const el of text2Layers) {
       if (active2) {
-        text2Ref.current.style.display = "flex";
-        
+        el.style.display = "flex";
+
         const out2 = smoothstep(0.12, 0.16, pTotal);
-        text2Ref.current.style.opacity = `${1 - out2}`;
-        text2Ref.current.style.transform = `scale(${1 + 0.15 * out2})`;
+        el.style.opacity = `${1 - out2}`;
+        el.style.transform = `scale(${1 + 0.15 * out2})`;
 
         // Line 1: 0.04 -> 0.08
         const phase1T = (pTotal - 0.04) / 0.04;
         // Line 2 (subtext): slightly delayed, 0.075 -> 0.115
         const phase2T = (pTotal - 0.075) / 0.04;
 
-        const textWrapper = text2Ref.current.children[0];
+        const textWrapper = el.children[0];
         if (textWrapper && textWrapper.children.length >= 2) {
           applyCharAnimation(textWrapper.children[0] as HTMLElement, phase1T);
           applyCharAnimation(textWrapper.children[1] as HTMLElement, phase2T);
         }
       } else {
-        text2Ref.current.style.opacity = "0";
-        text2Ref.current.style.display = "none";
+        el.style.opacity = "0";
+        el.style.display = "none";
       }
     }
 
@@ -243,7 +247,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     }
 
     // Problem Section: SphereGrid appears as Text 3 finishes fading
-    const activeProblem = pTotal >= 0.28 && pTotal <= 0.72;
+    const activeProblem = pTotal >= 0.28 && pTotal <= 0.745;
     if (activeProblem !== showProblemRef.current) {
       showProblemRef.current = activeProblem;
       setProblemActive(activeProblem);
@@ -252,10 +256,10 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     if (problemRef.current) {
       const container = problemRef.current.container;
       if (container) {
-        if (pTotal >= 0.28 && pTotal <= 0.72) {
+        if (pTotal >= 0.28 && pTotal <= 0.745) {
           const problemFadeIn = smoothstep(0.28, 0.32, pTotal);
-          // Cross-fade out as the offering section fades in
-          const problemFadeOut = 1 - smoothstep(0.66, 0.72, pTotal);
+          // Keep container fully opaque while cards fly upward, fading only at the very tail
+          const problemFadeOut = pTotal > 0.73 ? 1 - smoothstep(0.73, 0.745, pTotal) : 1;
           container.style.opacity = `${Math.min(problemFadeIn, problemFadeOut)}`;
           if (pTotal >= 0.32 && pTotal <= 0.66) {
             container.style.pointerEvents = "auto";
@@ -267,13 +271,13 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
           container.style.pointerEvents = "none";
         }
       }
-      if (pTotal >= 0.28 && pTotal <= 0.72) {
+      if (pTotal >= 0.28 && pTotal <= 0.745) {
         problemRef.current.updateProgress(pTotal);
       }
     }
 
     // Offering Section: Appears after Problem Section with a deliberate gap before Scene 1
-    const activeOffering = pTotal >= 0.68;
+    const activeOffering = pTotal >= 0.72;
     if (activeOffering !== showOfferingRef.current) {
       showOfferingRef.current = activeOffering;
       setOfferingActive(activeOffering);
@@ -282,8 +286,8 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     if (offeringRef.current) {
       const container = offeringRef.current.container;
       if (container) {
-        if (pTotal >= 0.68) {
-          const offeringFadeIn = smoothstep(0.68, 0.72, pTotal);
+        if (pTotal >= 0.72) {
+          const offeringFadeIn = smoothstep(0.72, 0.74, pTotal);
           container.style.opacity = `${offeringFadeIn}`;
           if (pTotal >= 0.74) {
             container.style.pointerEvents = "auto";
@@ -295,7 +299,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
           container.style.pointerEvents = "none";
         }
       }
-      if (pTotal >= 0.68) {
+      if (pTotal >= 0.72) {
         offeringRef.current.updateProgress(pTotal);
       }
     }
@@ -349,13 +353,24 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
       return clamp(root.scrollTop / totalSpan, 0, 1);
     };
 
-    const tick = () => {
+    let lastTime = 0;
+
+    const tick = (time: DOMHighResTimeStamp) => {
+      const dt = lastTime === 0 ? 16.666 : time - lastTime;
+      lastTime = time;
+
       const c = propsRef.current;
-      const k = c.smoothing <= 0 ? 1 : 1 - Math.exp(-1 / (60 * c.smoothing));
+      const timeScale = dt / 16.666;
+      const baseK = c.smoothing <= 0 ? 1 : 1 - Math.exp(-1 / (60 * c.smoothing));
+      
+      // Frame-rate independent lerp
+      const k = c.smoothing <= 0 ? 1 : 1 - Math.pow(1 - baseK, timeScale);
+      
       current += (target - current) * k;
       if (Math.abs(target - current) < 0.0004) {
         current = target;
         running = false;
+        lastTime = 0; // Reset for next interaction
       }
       applyProgress(current);
       raf = running ? requestAnimationFrame(tick) : 0;
@@ -364,6 +379,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     const kick = () => {
       if (running) return;
       running = true;
+      lastTime = 0;
       if (!raf) raf = requestAnimationFrame(tick);
     };
 

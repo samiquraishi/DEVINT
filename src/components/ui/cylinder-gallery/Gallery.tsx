@@ -2,8 +2,10 @@ import { useEffect, useRef, type CSSProperties } from "react";
 import * as THREE from "three";
 import {
   NUMBERED_CARDS,
+  OFFERING_CARDS,
   createGlassBackplateTexture,
   createCardFloatingContentTexture,
+  generateRingCardAssignments,
   type NumberedCardData,
 } from "./cardTextures";
 import "./gallery.css";
@@ -49,7 +51,7 @@ export type GalleryProps = {
 export const GALLERY_DEFAULTS = {
   speed: 0.3, // Slow, elegant, controlled scroll sensitivity
   damping: 0.98, // Cinematic fluid momentum glide
-  translucency: 0.55, // Frosted glass translucency
+  translucency: 1.0, // Completely solid cards (100% opacity)
   parallax: 0, // Responsive 3D perspective parallax tilt
   cylinderParallax: false, // Entire cylinder 3D parallax
   cardDepth: 100, // 3D translateZ depth (100px)
@@ -274,14 +276,13 @@ export function Gallery({
       ringHitMeshes.push(mesh);
     }
 
-    // Generate high-resolution procedural textures
-    const backplateTextures = NUMBERED_CARDS.map((card) => createGlassBackplateTexture(card));
-    const contentTextures: THREE.CanvasTexture[] = [];
-    for (let cycle = 1; cycle <= NUM_CYCLES; cycle++) {
-      NUMBERED_CARDS.forEach((card) => {
-        contentTextures.push(createCardFloatingContentTexture(card, cycle));
-      });
-    }
+    // Generate high-resolution procedural textures for the 10 offering cards
+    const backplateTextures = OFFERING_CARDS.map((card) => createGlassBackplateTexture(card));
+    const defaultContentTextures = OFFERING_CARDS.map((card) => createCardFloatingContentTexture(card, false));
+    const hoverContentTextures = OFFERING_CARDS.map((card) => createCardFloatingContentTexture(card, true));
+
+    // Ring card assignments: 4 new cards per ring, non-repeating sets, shuffled slot placements
+    const ringAssignments = generateRingCardAssignments(NUM_CYCLES, OFFERING_CARDS, CARDS_PER_CYCLE);
 
     interface PanelItem {
       group: THREE.Group;
@@ -289,42 +290,56 @@ export function Gallery({
       contentMesh: THREE.Mesh;
       backplateMat: THREE.MeshBasicMaterial;
       contentMat: THREE.MeshBasicMaterial;
+      defaultContentTex: THREE.CanvasTexture;
+      hoverContentTex: THREE.CanvasTexture;
       card: NumberedCardData;
       index: number;
+      ringIndex: number;
+      cardInRing: number;
       cycleNumber: number;
       cardInCycle: number;
+      currentScale: number;
     }
 
     const panels: PanelItem[] = [];
     const interactiveMeshes: THREE.Mesh[] = [];
 
     for (let index = 0; index < TOTAL_PANELS; index++) {
-      const card = NUMBERED_CARDS[index % NUMBERED_CARDS.length];
-      const cycleNumber = Math.floor(index / CARDS_PER_CYCLE) + 1;
-      const cardInCycle = (index % CARDS_PER_CYCLE) + 1;
-      const backplateTex = backplateTextures[index % backplateTextures.length];
-      const contentTex = contentTextures[index] || contentTextures[index % contentTextures.length];
+      const ringIndex = Math.floor(index / CARDS_PER_CYCLE);
+      const cardInRing = index % CARDS_PER_CYCLE;
+      const card = ringAssignments[ringIndex][cardInRing];
+      const cardIndexInAll = card.id - 1;
+      const cycleNumber = ringIndex + 1;
+      const cardInCycle = cardInRing + 1;
 
-      // 1. Smoked glass backplate material
+      const backplateTex = backplateTextures[cardIndexInAll];
+      const defaultContentTex = defaultContentTextures[cardIndexInAll];
+      const hoverContentTex = hoverContentTextures[cardIndexInAll];
+
+      // 1. Solid backplate material (holds video thumbnail first frame, 100% opaque)
       const backplateMat = new THREE.MeshBasicMaterial({
         map: backplateTex,
-        opacity: clamp(settingsRef.current.translucency, 0.1, 1.0),
+        opacity: 1.0,
         side: THREE.DoubleSide,
         toneMapped: false,
-        transparent: true,
-        depthWrite: false, // Ensures layered glass renders seamlessly
+        transparent: false,
+        depthWrite: true,
         wireframe: settingsRef.current.wireframe,
       });
 
-      // 2. Floating 3D content material (number, sentence, tags)
+      // 2. Floating 3D content material with mix-blend-difference
       const contentMat = new THREE.MeshBasicMaterial({
-        map: contentTex,
+        map: defaultContentTex,
         opacity: 1.0,
         side: THREE.DoubleSide,
         toneMapped: false,
         transparent: true,
         depthWrite: false,
         wireframe: settingsRef.current.wireframe,
+        blending: THREE.CustomBlending,
+        blendEquation: THREE.AddEquation,
+        blendSrc: THREE.OneMinusDstColorFactor,
+        blendDst: THREE.OneMinusSrcAlphaFactor,
       });
 
       const panelGroup = new THREE.Group();
@@ -349,10 +364,15 @@ export function Gallery({
         contentMesh,
         backplateMat,
         contentMat,
+        defaultContentTex,
+        hoverContentTex,
         card,
         index,
+        ringIndex,
+        cardInRing,
         cycleNumber,
         cardInCycle,
+        currentScale: 1.0,
       });
 
       interactiveMeshes.push(backplateMesh, contentMesh);
@@ -380,6 +400,7 @@ export function Gallery({
     let lastPointerTime = 0;
     let recentVelocities: { v: number; t: number }[] = [];
     let lastReportTime = 0;
+    let lastHoveredPanelIndex = -1;
 
     const render = () => {
       const safeScale = clamp(settingsRef.current.scale, 0.5, 2.0);
@@ -474,9 +495,41 @@ export function Gallery({
         }
       }
 
-      // Check card intersections just for updating the pointer cursor
-      const cardIntersects = raycaster.intersectObjects(interactiveMeshes, false);
-      
+      // Check card intersections for hover effects & cursor (swap number for center concept)
+      const visibleInteractiveMeshes = interactiveMeshes.filter((m) => m.parent && m.parent.visible);
+      const cardIntersects = raycaster.intersectObjects(visibleInteractiveMeshes, false);
+      let hoveredPanelIdx = -1;
+      if (cardIntersects.length > 0) {
+        const hit = cardIntersects[0].object as THREE.Mesh;
+        if (hit.userData && hit.userData.index !== undefined) {
+          hoveredPanelIdx = hit.userData.index;
+        }
+      }
+
+      if (hoveredPanelIdx !== lastHoveredPanelIndex) {
+        // Revert previous hovered panel back to default number texture
+        if (lastHoveredPanelIndex !== -1 && panels[lastHoveredPanelIndex]) {
+          const prev = panels[lastHoveredPanelIndex];
+          prev.contentMat.map = prev.defaultContentTex;
+          prev.contentMat.needsUpdate = true;
+        }
+        // Switch newly hovered panel to center concept texture
+        if (hoveredPanelIdx !== -1 && panels[hoveredPanelIdx]) {
+          const next = panels[hoveredPanelIdx];
+          next.contentMat.map = next.hoverContentTex;
+          next.contentMat.needsUpdate = true;
+        }
+        lastHoveredPanelIndex = hoveredPanelIdx;
+
+        if (hostElem) {
+          if (hoveredPanelIdx !== -1) {
+            hostElem.classList.add('cursor-pointer');
+          } else {
+            hostElem.classList.remove('cursor-pointer');
+          }
+        }
+      }
+
       // Apply constant slow revolution.
       // If a ring is hovered anywhere on its band, it revolves even slower.
       const baseRotationSpeed = 0.0015;
@@ -491,24 +544,22 @@ export function Gallery({
       }
 
       // Sequential Card Stream: Cards enter from bottom, travel through center, exit above
-      panels.forEach(({ group, contentMesh, index }) => {
-        const ringIndex = Math.floor(index / CARDS_PER_CYCLE);
-        const cardInRing = index % CARDS_PER_CYCLE;
-        
+      panels.forEach((panel) => {
+        const { group, contentMesh, ringIndex, cardInRing, index } = panel;
         const targetY = START_Y - (ringIndex * PANEL_SPACING_Y) + currentOffset;
-        
-        // Cards are evenly spaced in a circle. Add a slight dynamic spin to the whole ring as it moves up,
-        // plus the constant slow revolution.
-        const dynamicAngle = (cardInRing * ARC_SPAN) + (targetY * 0.04) + ringRotationOffsets[ringIndex]; 
-        
+
+        // Angular stagger per ring so cards never align vertically with previous ring
+        const ringStagger = (ringIndex * (ARC_SPAN * 0.5)) % (Math.PI * 2);
+        const dynamicAngle = (cardInRing * ARC_SPAN) + ringStagger + (targetY * 0.04) + ringRotationOffsets[ringIndex];
+
         // Frustum culling: Render cards within visible 3D cylindrical volume (front, sides, and back)
         const isVisible = targetY >= -50 && targetY <= 50;
-        
+
         let renderHalfVisible = true;
         if (settingsRef.current.renderHalf !== 'all') {
           const normalizedAngle = ((dynamicAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
           const isFront = normalizedAngle <= Math.PI / 2 || normalizedAngle >= (3 * Math.PI) / 2;
-          
+
           if (settingsRef.current.renderHalf === 'front' && !isFront) {
             renderHalfVisible = false;
           } else if (settingsRef.current.renderHalf === 'back' && isFront) {
@@ -529,7 +580,22 @@ export function Gallery({
           group.rotation.x = 0;
           group.rotation.z = 0;
           group.rotation.y = dynamicAngle;
-          group.scale.setScalar(1.0);
+
+          // Smooth hover expansion to 1.03 of its original scale
+          const targetScale = index === hoveredPanelIdx ? 1.03 : 1.0;
+          panel.currentScale += (targetScale - panel.currentScale) * 0.14;
+          group.scale.setScalar(panel.currentScale);
+
+          // Bring hovered card forward in render order so it renders cleanly on top
+          if (index === hoveredPanelIdx) {
+            group.renderOrder = 100;
+            panel.backplateMesh.renderOrder = 100;
+            panel.contentMesh.renderOrder = 101;
+          } else {
+            group.renderOrder = 0;
+            panel.backplateMesh.renderOrder = 0;
+            panel.contentMesh.renderOrder = 1;
+          }
 
           contentMesh.position.x = 0;
           contentMesh.position.y = 0;
@@ -559,7 +625,7 @@ export function Gallery({
         );
         const activeCycle = Math.floor(activeIndex / CARDS_PER_CYCLE) + 1;
         const activeCardInCycle = (activeIndex % CARDS_PER_CYCLE) + 1;
-        const activeCard = NUMBERED_CARDS[activeIndex % CARDS_PER_CYCLE] || null;
+        const activeCard = panels[activeIndex]?.card || OFFERING_CARDS[activeIndex % OFFERING_CARDS.length] || null;
         const isWidescreenInitial = currentOffset <= 1.0;
         const isConcluded = currentOffset >= MAX_SCROLL_OFFSET - 1.2;
         const progress = clamp(currentOffset / MAX_SCROLL_OFFSET, 0, 1);
@@ -768,7 +834,8 @@ export function Gallery({
         contentMat.dispose();
       });
       backplateTextures.forEach((texture) => texture.dispose());
-      contentTextures.forEach((texture) => texture.dispose());
+      defaultContentTextures.forEach((texture) => texture.dispose());
+      hoverContentTextures.forEach((texture) => texture.dispose());
       renderer.dispose();
     };
   }, []);

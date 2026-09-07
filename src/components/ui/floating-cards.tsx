@@ -188,8 +188,8 @@ const FlippableCard: FC<FlippableCardProps> = ({
   // Statement 3: 0.62 -> 0.74 (Cards exit staggered)
   const appearStart = 0.32 + card.appearOrder * 0.016;
   const appearEnd = appearStart + 0.06;
-  const exitStart = 0.58 + card.exitOrder * 0.016;
-  const exitEnd = exitStart + 0.08;
+  const exitStart = 0.58 + card.exitOrder * 0.012;
+  const exitEnd = exitStart + 0.06;
 
   // All animations via pure useTransform with smoothstep easing — no spring wrappers
   const computedStyle = useTransform(scrollProgress, (p: number) => {
@@ -208,7 +208,7 @@ const FlippableCard: FC<FlippableCardProps> = ({
     const opacity = appearT;
     
     // Y position
-    const y = (1 - appearT) * 60 + exitT * (-1200 - card.depth * 200);
+    const y = (1 - appearT) * 60 + exitT * (-1400 - card.depth * 300);
 
     return { scaleX, scaleY, opacity, y };
   });

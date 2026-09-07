@@ -2,6 +2,8 @@ import React, { forwardRef, useImperativeHandle, useRef, useState } from "react"
 import { Scene } from "./cylinder-gallery/Scene";
 import { clamp } from "@/lib/utils";
 
+import type { NumberedCardData } from "./cylinder-gallery/cardTextures";
+
 export interface CylinderCardsRef {
   updateProgress: (pTotal: number) => void;
   container: HTMLDivElement | null;
@@ -9,10 +11,11 @@ export interface CylinderCardsRef {
 
 export interface CylinderCardsProps {
   className?: string;
+  onPanelClick?: (card: NumberedCardData) => void;
 }
 
 export const CylinderCards = forwardRef<CylinderCardsRef, CylinderCardsProps>(
-  ({ className = "" }, ref) => {
+  ({ className = "", onPanelClick }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const frontContainerRef = useRef<HTMLDivElement>(null);
     const [scrollProgress, setScrollProgress] = useState(0);
@@ -26,8 +29,8 @@ export const CylinderCards = forwardRef<CylinderCardsRef, CylinderCardsProps>(
 
         const el = containerRef.current;
 
-        const startRise = 0.740;
-        const endFall = 0.940;
+        const startRise = 0.735;
+        const endFall = 0.955;
         
         // Update 3D scene scroll progress state
         const rawProgress = clamp((pTotal - startRise) / (endFall - startRise), 0, 1);
@@ -62,13 +65,14 @@ export const CylinderCards = forwardRef<CylinderCardsRef, CylinderCardsProps>(
             cycles={5}
             cardDepth={100}
             renderHalf="back"
+            onPanelClick={onPanelClick}
           />
         </div>
 
         {/* Front of the cylinder (rendered in front of the text) */}
         <div
           ref={frontContainerRef}
-          className={`absolute inset-0 pointer-events-none [will-change:opacity] ${className}`}
+          className={`absolute inset-0 pointer-events-auto [will-change:opacity] ${className}`}
           style={{ display: "none", opacity: 1, zIndex: 20 }} // z-20 is in front of text
         >
           <Scene
@@ -79,6 +83,7 @@ export const CylinderCards = forwardRef<CylinderCardsRef, CylinderCardsProps>(
             cycles={5}
             cardDepth={100}
             renderHalf="front"
+            onPanelClick={onPanelClick}
           />
         </div>
       </>

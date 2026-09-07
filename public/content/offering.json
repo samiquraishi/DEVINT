@@ -18,5 +18,204 @@
     "title": "YOUR IDEA. BUILT BY DEVINT.",
     "subtitle": "From websites and apps to AI, automation, data and the systems that bring it all together.",
     "highlights": ["DEVINT"]
-  }
+  },
+  "cards": [
+    {
+      "id": 1,
+      "digit": "01",
+      "title": "WEBSITES",
+      "centerConcept": "MAKE AN IMPRESSION.",
+      "description": "We create fast, responsive websites that turn your digital presence into a meaningful experience.",
+      "whatWeCanBuild": [
+        "Business & company websites",
+        "E-commerce & portfolio websites",
+        "CMS-driven websites"
+      ],
+      "typicalApplications": [
+        "Businesses",
+        "Professionals",
+        "Creators",
+        "Personal brands"
+      ],
+      "applicationsText": "Businesses · Professionals · Creators · Personal brands",
+      "video": "/videos/Website.mp4"
+    },
+    {
+      "id": 2,
+      "digit": "02",
+      "title": "WEB APPS",
+      "centerConcept": "TURN AN IDEA INTO A PRODUCT.",
+      "description": "We build web applications around real users, workflows and the way your product needs to work.",
+      "whatWeCanBuild": [
+        "Dashboards & portals",
+        "SaaS products",
+        "Booking, management & workflow systems"
+      ],
+      "typicalApplications": [
+        "Platforms",
+        "Internal tools",
+        "Customer portals",
+        "SaaS"
+      ],
+      "applicationsText": "Platforms · Internal tools · Customer portals · SaaS",
+      "video": "/videos/WebApp.mp4"
+    },
+    {
+      "id": 3,
+      "digit": "03",
+      "title": "MOBILE APPS",
+      "centerConcept": "TAKE YOUR PRODUCT WITH YOU.",
+      "description": "We design and develop mobile experiences that make your product accessible wherever your users are.",
+      "whatWeCanBuild": [
+        "iOS applications",
+        "Android applications",
+        "Cross-platform apps"
+      ],
+      "typicalApplications": [
+        "Consumer apps",
+        "Business apps",
+        "Service platforms"
+      ],
+      "applicationsText": "Consumer apps · Business apps · Service platforms",
+      "video": "/videos/MobileApp.mp4"
+    },
+    {
+      "id": 4,
+      "digit": "04",
+      "title": "CUSTOM SOFTWARE",
+      "centerConcept": "BUILD IT YOUR WAY.",
+      "description": "When existing software doesn't fit, we build technology around the way you actually work.",
+      "whatWeCanBuild": [
+        "Custom business software",
+        "Workflow systems",
+        "Industry-specific applications"
+      ],
+      "typicalApplications": [
+        "Professional services",
+        "Operations",
+        "Specialized workflows"
+      ],
+      "applicationsText": "Professional services · Operations · Specialized workflows",
+      "video": "/videos/CustomSoftware.mp4"
+    },
+    {
+      "id": 5,
+      "digit": "05",
+      "title": "AI",
+      "centerConcept": "MAKE IT SMARTER.",
+      "description": "We use AI to help software understand, assist, analyze and make better decisions.",
+      "whatWeCanBuild": [
+        "AI assistants",
+        "Intelligent document processing",
+        "AI-powered features & workflows"
+      ],
+      "typicalApplications": [
+        "Knowledge systems",
+        "Support",
+        "Content",
+        "Decision support"
+      ],
+      "applicationsText": "Knowledge systems · Support · Content · Decision support",
+      "video": "/videos/AI.mp4"
+    },
+    {
+      "id": 6,
+      "digit": "06",
+      "title": "AUTOMATION",
+      "centerConcept": "LET THE SYSTEM WORK.",
+      "description": "We automate repetitive workflows so technology can handle predictable work for you.",
+      "whatWeCanBuild": [
+        "Automated business workflows",
+        "Data processing pipelines",
+        "Notifications & task automation"
+      ],
+      "typicalApplications": [
+        "Operations",
+        "Administration",
+        "Lead management",
+        "Reporting"
+      ],
+      "applicationsText": "Operations · Administration · Lead management · Reporting",
+      "video": "/videos/Automation.mp4"
+    },
+    {
+      "id": 7,
+      "digit": "07",
+      "title": "DATA",
+      "centerConcept": "MAKE DATA USEFUL.",
+      "description": "We turn scattered information into organized data, useful insights and clearer ways to understand what's happening.",
+      "whatWeCanBuild": [
+        "Data dashboards",
+        "Reporting systems",
+        "Data processing & visualization"
+      ],
+      "typicalApplications": [
+        "Analytics",
+        "Operations",
+        "Business intelligence"
+      ],
+      "applicationsText": "Analytics · Operations · Business intelligence",
+      "video": "/videos/Data.mp4"
+    },
+    {
+      "id": 8,
+      "digit": "08",
+      "title": "BACKEND",
+      "centerConcept": "BUILD WHAT'S UNDERNEATH.",
+      "description": "We engineer the systems, databases and logic that make digital products work reliably behind the scenes.",
+      "whatWeCanBuild": [
+        "Backend architecture",
+        "APIs & databases",
+        "Authentication & application logic"
+      ],
+      "typicalApplications": [
+        "Web apps",
+        "Mobile apps",
+        "Platforms",
+        "Internal systems"
+      ],
+      "applicationsText": "Web apps · Mobile apps · Platforms · Internal systems",
+      "video": "/videos/Backend.mp4"
+    },
+    {
+      "id": 9,
+      "digit": "09",
+      "title": "APIs & INTEGRATIONS",
+      "centerConcept": "MAKE EVERYTHING CONNECT.",
+      "description": "We connect the systems you already use so information can move smoothly between them.",
+      "whatWeCanBuild": [
+        "Third-party API integrations",
+        "System-to-system connections",
+        "Data synchronization"
+      ],
+      "typicalApplications": [
+        "CRMs",
+        "Payments",
+        "Communication tools",
+        "Business platforms"
+      ],
+      "applicationsText": "CRMs · Payments · Communication tools · Business platforms",
+      "video": "/videos/API.mp4"
+    },
+    {
+      "id": 10,
+      "digit": "10",
+      "title": "UI/UX",
+      "centerConcept": "MAKE IT EASY TO USE.",
+      "description": "We design digital experiences that make complex products feel simple, intuitive and natural.",
+      "whatWeCanBuild": [
+        "Product interfaces",
+        "User journeys",
+        "Design systems & prototypes"
+      ],
+      "typicalApplications": [
+        "Web products",
+        "Mobile apps",
+        "SaaS",
+        "Digital platforms"
+      ],
+      "applicationsText": "Web products · Mobile apps · SaaS · Digital platforms",
+      "video": "/videos/UX.mp4"
+    }
+  ]
 }

@@ -64,7 +64,7 @@ export const Floating = ({
     elementsMap.current.delete(id);
   }, []);
 
-  useAnimationFrame(() => {
+  useAnimationFrame((time, delta) => {
     if (!containerRef.current) return;
 
     let targetMouseX = mousePositionRef.current.x;
@@ -78,6 +78,9 @@ export const Floating = ({
       frozenMouseRef.current.y = targetMouseY;
     }
 
+    const timeScale = delta / 16.666;
+    const eK = 1 - Math.pow(1 - easingFactor, timeScale);
+
     elementsMap.current.forEach((data) => {
       const baseScale = 75 * sensitivity;
       const strength = Math.sqrt(data.depth) * baseScale;
@@ -89,8 +92,8 @@ export const Floating = ({
       const dx = newTargetX - data.currentPosition.x;
       const dy = newTargetY - data.currentPosition.y;
 
-      data.currentPosition.x += dx * easingFactor;
-      data.currentPosition.y += dy * easingFactor;
+      data.currentPosition.x += dx * eK;
+      data.currentPosition.y += dy * eK;
 
       data.element.style.transform = `translate3d(${data.currentPosition.x}px, ${data.currentPosition.y}px, 0)`;
     });
