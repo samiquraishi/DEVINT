@@ -8,7 +8,7 @@ export interface NumberedCardData {
   centerConcept: string;
   description: string;
   whatWeCanBuild: string[];
-  typicalApplications: string[];
+  typicalApplications?: string[];
   applicationsText?: string;
   video: string;
   // Legacy compatibility fields

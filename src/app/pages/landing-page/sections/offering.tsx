@@ -1,6 +1,6 @@
 "use client";
 
-import React, { forwardRef, useImperativeHandle, useRef } from "react";
+import React, { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import SphereGrid, { SphereGridRef } from "@/components/ui/sphere-grid";
 import offeringData from "../../../../../public/content/offering.json";
 import { clamp } from "@/lib/utils";
@@ -116,6 +116,7 @@ export const OfferingSection = forwardRef<OfferingSectionRef, OfferingSectionPro
     const containerRef = useRef<HTMLDivElement>(null);
     const sphereGridRef = useRef<SphereGridRef>(null);
     const cylinderCardsRef = useRef<CylinderCardsRef>(null);
+    const [isCardExpanded, setIsCardExpanded] = useState(false);
     const sc1RefA = useRef<HTMLDivElement>(null);
     const sc1RefB = useRef<HTMLDivElement>(null);
     const sc2RefA = useRef<HTMLDivElement>(null);
@@ -287,11 +288,16 @@ export const OfferingSection = forwardRef<OfferingSectionRef, OfferingSectionPro
             gapRatio={0.04}
             parallaxStrength={75}
             isActive={isActive}
+            isFrozen={isCardExpanded}
             className="w-full h-full"
           />
 
           {/* 3D Cylinder Gallery Cards */}
-          <CylinderCards ref={cylinderCardsRef} />
+          <CylinderCards
+            ref={cylinderCardsRef}
+            isFrozen={isCardExpanded}
+            onExpandChange={setIsCardExpanded}
+          />
 
           {/* Layer A (z-[15]): mix-blend-difference — regular text blends directly over SphereGrid and back of cylinder (z-10), inside cylinder */}
           <div className="absolute inset-0 z-[15] flex flex-col items-center justify-center pointer-events-none select-none px-[4%] text-center max-w-7xl w-full mx-auto gap-y-6 mix-blend-difference [&_.fold-text-highlight]:invisible">
