@@ -24,6 +24,8 @@ export interface SphereGridProps {
   parallaxStrength?: number;
   /** Whether the animation loop is active */
   isActive?: boolean;
+  /** Whether animation and parallax are frozen */
+  isFrozen?: boolean;
   /** Additional class name */
   className?: string;
 }
@@ -71,6 +73,7 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
       gapRatio = 0.04,
       parallaxStrength = 75,
       isActive = true,
+      isFrozen = false,
       className = "",
     },
     ref
@@ -95,12 +98,16 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
     const dissolveStartRowRef = useRef<number | null>(null);
     const lastRenderTimeRef = useRef(0);
 
-    // Track isActive via ref so the RAF loop can check it without being in the
-    // heavy useEffect dependency array (which would teardown/recreate the canvas).
+    // Track isActive and isFrozen via refs so the RAF loop can check them without recreating canvas
     const isActiveRef = useRef(isActive);
     useEffect(() => {
       isActiveRef.current = isActive;
     }, [isActive]);
+
+    const isFrozenRef = useRef(isFrozen);
+    useEffect(() => {
+      isFrozenRef.current = isFrozen;
+    }, [isFrozen]);
 
     useImperativeHandle(ref, () => ({
       updateScroll(pTotal: number) {
@@ -165,6 +172,7 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
     resizeCanvas();
 
     const handlePointerMove = (e: PointerEvent) => {
+      if (isFrozenRef.current) return;
       const rect = canvas.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return;
       mousePosRef.current = {
@@ -229,8 +237,8 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
     }
 
     const render = (now: DOMHighResTimeStamp) => {
-      if (!isActiveRef.current) {
-        // Keep loop alive so it resumes instantly when activated
+      if (!isActiveRef.current || isFrozenRef.current) {
+        // Keep loop alive so it resumes instantly when activated or unfrozen
         lastRenderTimeRef.current = 0;
         animationFrameId = requestAnimationFrame(render);
         return;

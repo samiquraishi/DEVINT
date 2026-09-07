@@ -22,6 +22,13 @@ export interface StreamProgressInfo {
   isConcluded: boolean;
 }
 
+export interface CardRect {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
 export type GalleryProps = {
   speed?: number; // Scroll sensitivity / speed
   damping?: number; // Fluid scroll momentum damping (e.g. 0.85 - 0.985)
@@ -39,13 +46,15 @@ export type GalleryProps = {
   style?: CSSProperties;
   interactive?: boolean;
   wireframe?: boolean;
-  onPanelClick?: (card: NumberedCardData) => void;
+  onPanelClick?: (card: NumberedCardData, rect?: CardRect) => void;
   onProgressChange?: (info: StreamProgressInfo) => void;
   resetTrigger?: number;
   stepNextTrigger?: number;
   stepPrevTrigger?: number;
   scrollProgress?: number;
   renderHalf?: 'front' | 'back' | 'all';
+  isFrozen?: boolean;
+  sharedHoveredIndexRef?: React.MutableRefObject<number>;
 };
 
 export const GALLERY_DEFAULTS = {
@@ -107,6 +116,8 @@ export function Gallery({
     stepPrevTrigger,
     scrollProgress,
     renderHalf = 'all',
+    isFrozen = false,
+    sharedHoveredIndexRef,
   }: GalleryProps) {
     const hostRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -128,6 +139,8 @@ export function Gallery({
       onProgressChange,
       scrollProgress,
       renderHalf,
+      isFrozen,
+      sharedHoveredIndexRef,
     });
   
     const scrollOffsetRef = useRef(0);
@@ -150,6 +163,8 @@ export function Gallery({
         onProgressChange,
         scrollProgress,
         renderHalf,
+        isFrozen,
+        sharedHoveredIndexRef,
       };
     }, [
       speed,
@@ -167,6 +182,8 @@ export function Gallery({
       onProgressChange,
       scrollProgress,
       renderHalf,
+      isFrozen,
+      sharedHoveredIndexRef,
     ]);
 
   // Handle external reset trigger (Return to Initial Widescreen)
@@ -340,6 +357,9 @@ export function Gallery({
         blendEquation: THREE.AddEquation,
         blendSrc: THREE.OneMinusDstColorFactor,
         blendDst: THREE.OneMinusSrcAlphaFactor,
+        blendEquationAlpha: THREE.AddEquation,
+        blendSrcAlpha: THREE.ZeroFactor,
+        blendDstAlpha: THREE.OneFactor,
       });
 
       const panelGroup = new THREE.Group();
@@ -403,6 +423,9 @@ export function Gallery({
     let lastHoveredPanelIndex = -1;
 
     const render = () => {
+      if (settingsRef.current.isFrozen) {
+        return;
+      }
       const safeScale = clamp(settingsRef.current.scale, 0.5, 2.0);
       const currentTranslucency = clamp(settingsRef.current.translucency, 0.1, 1.0);
       const currentDamping = clamp(settingsRef.current.damping, 0.70, 0.995);
@@ -425,12 +448,12 @@ export function Gallery({
 
       // Auto Stream Playback or External Scroll mapping
       if (settingsRef.current.scrollProgress !== undefined) {
-        // Direct lerp — no spring, no velocity, no overshoot
+        // Snappy responsive lerp — in lockstep with page scroll
         const targetOffset = settingsRef.current.scrollProgress * MAX_SCROLL_OFFSET;
-        const lerpFactor = 0.08;
+        const lerpFactor = 0.22;
         scrollOffsetRef.current += (targetOffset - scrollOffsetRef.current) * lerpFactor;
         // Snap when close enough to avoid perpetual micro-drift
-        if (Math.abs(targetOffset - scrollOffsetRef.current) < 0.01) {
+        if (Math.abs(targetOffset - scrollOffsetRef.current) < 0.005) {
           scrollOffsetRef.current = targetOffset;
         }
         scrollVelocityRef.current = 0; // bypass velocity system entirely
@@ -471,42 +494,52 @@ export function Gallery({
       // Read the current offset for downstream positioning (works for both paths)
       const currentOffset = scrollOffsetRef.current;
 
-      // Update raycaster for independent ring hover detection
+      let hoveredRingIndex = -1;
+      let hoveredPanelIdx = -1;
+
+      // Only perform 3D raycasting when pointer is actively over this canvas to preserve 60/120fps fluidity
       if (isPointerOverCanvas) {
         mouse.x = pointerNormX;
         mouse.y = pointerNormY;
-      } else {
-        mouse.x = -1000;
-        mouse.y = -1000;
-      }
-      raycaster.setFromCamera(mouse, camera);
-      
-      // Update the invisible ring hit meshes positions to match the actual rings
-      for (let i = 0; i < TOTAL_Y_STEPS; i++) {
-        ringHitMeshes[i].position.y = START_Y - (i * PANEL_SPACING_Y) + currentOffset;
-      }
-      
-      const ringIntersects = raycaster.intersectObjects(ringHitMeshes, false);
-      let hoveredRingIndex = -1;
-      if (ringIntersects.length > 0) {
-        const hit = ringIntersects[0].object;
-        if (hit.userData && hit.userData.ringIndex !== undefined) {
-           hoveredRingIndex = hit.userData.ringIndex;
+        raycaster.setFromCamera(mouse, camera);
+        
+        // Update the invisible ring hit meshes positions to match the actual rings
+        for (let i = 0; i < TOTAL_Y_STEPS; i++) {
+          ringHitMeshes[i].position.y = START_Y - (i * PANEL_SPACING_Y) + currentOffset;
+        }
+        
+        const ringIntersects = raycaster.intersectObjects(ringHitMeshes, false);
+        if (ringIntersects.length > 0) {
+          const hit = ringIntersects[0].object;
+          if (hit.userData && hit.userData.ringIndex !== undefined) {
+             hoveredRingIndex = hit.userData.ringIndex;
+          }
+        }
+
+        // Check card intersections for hover effects & cursor (front and back/far view cards)
+        const visibleInteractiveMeshes = interactiveMeshes.filter(
+          (m) => m.parent && m.parent.position.y >= -50 && m.parent.position.y <= 50
+        );
+        const cardIntersects = raycaster.intersectObjects(visibleInteractiveMeshes, false);
+        if (cardIntersects.length > 0) {
+          const hit = cardIntersects[0].object as THREE.Mesh;
+          if (hit.userData && hit.userData.index !== undefined) {
+            hoveredPanelIdx = hit.userData.index;
+          }
         }
       }
 
-      // Check card intersections for hover effects & cursor (swap number for center concept)
-      const visibleInteractiveMeshes = interactiveMeshes.filter((m) => m.parent && m.parent.visible);
-      const cardIntersects = raycaster.intersectObjects(visibleInteractiveMeshes, false);
-      let hoveredPanelIdx = -1;
-      if (cardIntersects.length > 0) {
-        const hit = cardIntersects[0].object as THREE.Mesh;
-        if (hit.userData && hit.userData.index !== undefined) {
-          hoveredPanelIdx = hit.userData.index;
-        }
+      if (settingsRef.current.sharedHoveredIndexRef && settingsRef.current.renderHalf !== 'back') {
+        settingsRef.current.sharedHoveredIndexRef.current = hoveredPanelIdx;
       }
 
-      if (hoveredPanelIdx !== lastHoveredPanelIndex) {
+      const effectiveHoveredIdx = settingsRef.current.sharedHoveredIndexRef
+        ? (settingsRef.current.renderHalf === 'back'
+            ? settingsRef.current.sharedHoveredIndexRef.current
+            : hoveredPanelIdx)
+        : hoveredPanelIdx;
+
+      if (effectiveHoveredIdx !== lastHoveredPanelIndex) {
         // Revert previous hovered panel back to default number texture
         if (lastHoveredPanelIndex !== -1 && panels[lastHoveredPanelIndex]) {
           const prev = panels[lastHoveredPanelIndex];
@@ -514,15 +547,15 @@ export function Gallery({
           prev.contentMat.needsUpdate = true;
         }
         // Switch newly hovered panel to center concept texture
-        if (hoveredPanelIdx !== -1 && panels[hoveredPanelIdx]) {
-          const next = panels[hoveredPanelIdx];
+        if (effectiveHoveredIdx !== -1 && panels[effectiveHoveredIdx]) {
+          const next = panels[effectiveHoveredIdx];
           next.contentMat.map = next.hoverContentTex;
           next.contentMat.needsUpdate = true;
         }
-        lastHoveredPanelIndex = hoveredPanelIdx;
+        lastHoveredPanelIndex = effectiveHoveredIdx;
 
-        if (hostElem) {
-          if (hoveredPanelIdx !== -1) {
+        if (hostElem && settingsRef.current.renderHalf !== 'back') {
+          if (effectiveHoveredIdx !== -1) {
             hostElem.classList.add('cursor-pointer');
           } else {
             hostElem.classList.remove('cursor-pointer');
@@ -567,9 +600,8 @@ export function Gallery({
           }
         }
 
-        group.visible = isVisible && renderHalfVisible;
-
-        if (group.visible) {
+        // Always update 3D transform for all cards in vertical volume so they are positioned accurately
+        if (isVisible) {
           group.position.y = targetY;
 
           // Full 360-degree cylindrical helical rotation:
@@ -582,12 +614,21 @@ export function Gallery({
           group.rotation.y = dynamicAngle;
 
           // Smooth hover expansion to 1.03 of its original scale
-          const targetScale = index === hoveredPanelIdx ? 1.03 : 1.0;
+          const targetScale = index === effectiveHoveredIdx ? 1.03 : 1.0;
           panel.currentScale += (targetScale - panel.currentScale) * 0.14;
           group.scale.setScalar(panel.currentScale);
 
+          contentMesh.position.x = 0;
+          contentMesh.position.y = 0;
+
+          group.updateMatrixWorld(true);
+        }
+
+        group.visible = isVisible && renderHalfVisible;
+
+        if (group.visible) {
           // Bring hovered card forward in render order so it renders cleanly on top
-          if (index === hoveredPanelIdx) {
+          if (index === effectiveHoveredIdx) {
             group.renderOrder = 100;
             panel.backplateMesh.renderOrder = 100;
             panel.contentMesh.renderOrder = 101;
@@ -596,9 +637,6 @@ export function Gallery({
             panel.backplateMesh.renderOrder = 0;
             panel.contentMesh.renderOrder = 1;
           }
-
-          contentMesh.position.x = 0;
-          contentMesh.position.y = 0;
         }
       });
 
@@ -757,13 +795,42 @@ export function Gallery({
         mouse.y = -(((e.clientY - bounds.top) / bounds.height) * 2 - 1);
 
         raycaster.setFromCamera(mouse, camera);
-        const visibleMeshes = interactiveMeshes.filter(m => m.parent && m.parent.visible);
+        const visibleMeshes = interactiveMeshes.filter(
+          (m) => m.parent && m.parent.position.y >= -50 && m.parent.position.y <= 50
+        );
         const intersects = raycaster.intersectObjects(visibleMeshes);
         if (intersects.length > 0) {
           const hit = intersects[0].object as THREE.Mesh;
           const uData = hit.userData;
           if (uData.card) {
-            settingsRef.current.onPanelClick(uData.card);
+            let rect: CardRect;
+            try {
+              const clickPoint3D = intersects[0].point;
+              const proj = clickPoint3D.clone().project(camera);
+              const centerX = ((proj.x + 1) / 2) * bounds.width + bounds.left;
+              const centerY = ((-proj.y + 1) / 2) * bounds.height + bounds.top;
+
+              const dist = camera.position.distanceTo(clickPoint3D);
+              const fovRad = (camera.fov * Math.PI) / 180;
+              const visibleHeight = 2 * Math.tan(fovRad / 2) * dist;
+              const cardPixelHeight = (cardHeight / visibleHeight) * bounds.height;
+              const cardPixelWidth = cardPixelHeight * (16 / 9);
+
+              rect = {
+                left: centerX - cardPixelWidth / 2,
+                top: centerY - cardPixelHeight / 2,
+                width: cardPixelWidth,
+                height: cardPixelHeight,
+              };
+            } catch {
+              rect = {
+                left: e.clientX - 160,
+                top: e.clientY - 90,
+                width: 320,
+                height: 180,
+              };
+            }
+            settingsRef.current.onPanelClick(uData.card, rect);
           }
         }
       }

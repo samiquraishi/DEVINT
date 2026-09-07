@@ -16,7 +16,9 @@ export interface GlowingOrbHandle {
  * the canvas is **truly transparent** — the starfield behind it is always visible.
  * No EffectComposer, no bloom pass, no 3-D sphere.
  */
-export const GlowingOrb = forwardRef<GlowingOrbHandle, {}>((_, ref) => {
+export type GlowingOrbProps = React.HTMLAttributes<HTMLDivElement>;
+
+export const GlowingOrb = forwardRef<GlowingOrbHandle, GlowingOrbProps>((_, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mouseTarget = useRef({ x: 0, y: 0 });

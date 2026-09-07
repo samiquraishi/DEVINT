@@ -31,12 +31,6 @@
         "E-commerce & portfolio websites",
         "CMS-driven websites"
       ],
-      "typicalApplications": [
-        "Businesses",
-        "Professionals",
-        "Creators",
-        "Personal brands"
-      ],
       "applicationsText": "Businesses · Professionals · Creators · Personal brands",
       "video": "/videos/Website.mp4"
     },
@@ -50,12 +44,6 @@
         "Dashboards & portals",
         "SaaS products",
         "Booking, management & workflow systems"
-      ],
-      "typicalApplications": [
-        "Platforms",
-        "Internal tools",
-        "Customer portals",
-        "SaaS"
       ],
       "applicationsText": "Platforms · Internal tools · Customer portals · SaaS",
       "video": "/videos/WebApp.mp4"
@@ -71,11 +59,6 @@
         "Android applications",
         "Cross-platform apps"
       ],
-      "typicalApplications": [
-        "Consumer apps",
-        "Business apps",
-        "Service platforms"
-      ],
       "applicationsText": "Consumer apps · Business apps · Service platforms",
       "video": "/videos/MobileApp.mp4"
     },
@@ -89,11 +72,6 @@
         "Custom business software",
         "Workflow systems",
         "Industry-specific applications"
-      ],
-      "typicalApplications": [
-        "Professional services",
-        "Operations",
-        "Specialized workflows"
       ],
       "applicationsText": "Professional services · Operations · Specialized workflows",
       "video": "/videos/CustomSoftware.mp4"
@@ -109,12 +87,6 @@
         "Intelligent document processing",
         "AI-powered features & workflows"
       ],
-      "typicalApplications": [
-        "Knowledge systems",
-        "Support",
-        "Content",
-        "Decision support"
-      ],
       "applicationsText": "Knowledge systems · Support · Content · Decision support",
       "video": "/videos/AI.mp4"
     },
@@ -128,12 +100,6 @@
         "Automated business workflows",
         "Data processing pipelines",
         "Notifications & task automation"
-      ],
-      "typicalApplications": [
-        "Operations",
-        "Administration",
-        "Lead management",
-        "Reporting"
       ],
       "applicationsText": "Operations · Administration · Lead management · Reporting",
       "video": "/videos/Automation.mp4"
@@ -149,11 +115,6 @@
         "Reporting systems",
         "Data processing & visualization"
       ],
-      "typicalApplications": [
-        "Analytics",
-        "Operations",
-        "Business intelligence"
-      ],
       "applicationsText": "Analytics · Operations · Business intelligence",
       "video": "/videos/Data.mp4"
     },
@@ -167,12 +128,6 @@
         "Backend architecture",
         "APIs & databases",
         "Authentication & application logic"
-      ],
-      "typicalApplications": [
-        "Web apps",
-        "Mobile apps",
-        "Platforms",
-        "Internal systems"
       ],
       "applicationsText": "Web apps · Mobile apps · Platforms · Internal systems",
       "video": "/videos/Backend.mp4"
@@ -188,12 +143,6 @@
         "System-to-system connections",
         "Data synchronization"
       ],
-      "typicalApplications": [
-        "CRMs",
-        "Payments",
-        "Communication tools",
-        "Business platforms"
-      ],
       "applicationsText": "CRMs · Payments · Communication tools · Business platforms",
       "video": "/videos/API.mp4"
     },
@@ -207,12 +156,6 @@
         "Product interfaces",
         "User journeys",
         "Design systems & prototypes"
-      ],
-      "typicalApplications": [
-        "Web products",
-        "Mobile apps",
-        "SaaS",
-        "Digital platforms"
       ],
       "applicationsText": "Web products · Mobile apps · SaaS · Digital platforms",
       "video": "/videos/UX.mp4"

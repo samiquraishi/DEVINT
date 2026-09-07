@@ -1,15 +1,16 @@
-import { Gallery, type GalleryProps, type StreamProgressInfo, GALLERY_DEFAULTS } from "./Gallery";
+import { Gallery, type GalleryProps, type StreamProgressInfo, type CardRect, GALLERY_DEFAULTS } from "./Gallery";
 import type { NumberedCardData } from "./cardTextures";
 
 export type SceneProps = Omit<GalleryProps, "onPanelClick"> & {
   backgroundTheme?: 'white';
-  onPanelClick?: (card: NumberedCardData) => void;
+  onPanelClick?: (card: NumberedCardData, rect?: CardRect) => void;
   onProgressChange?: (info: StreamProgressInfo) => void;
   resetTrigger?: number;
   stepNextTrigger?: number;
   stepPrevTrigger?: number;
   scrollProgress?: number;
   renderHalf?: 'front' | 'back' | 'all';
+  isFrozen?: boolean;
 };
 
 export function Scene({
@@ -33,6 +34,8 @@ export function Scene({
   stepPrevTrigger,
   scrollProgress,
   renderHalf = 'all',
+  isFrozen = false,
+  sharedHoveredIndexRef,
 }: SceneProps) {
   return (
     <div id="scene-wrapper" className="shader-frame">
@@ -57,6 +60,8 @@ export function Scene({
         stepPrevTrigger={stepPrevTrigger}
         scrollProgress={scrollProgress}
         renderHalf={renderHalf}
+        isFrozen={isFrozen}
+        sharedHoveredIndexRef={sharedHoveredIndexRef}
       />
     </div>
   );

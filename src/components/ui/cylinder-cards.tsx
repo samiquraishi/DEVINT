@@ -1,5 +1,7 @@
-import React, { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import React, { forwardRef, useImperativeHandle, useRef, useState, useCallback } from "react";
+import { AnimatePresence } from "framer-motion";
 import { Scene } from "./cylinder-gallery/Scene";
+import { ExpandedOfferingCard, type CardRect } from "./expanded-offering-card";
 import { clamp } from "@/lib/utils";
 
 import type { NumberedCardData } from "./cylinder-gallery/cardTextures";
@@ -11,14 +13,39 @@ export interface CylinderCardsRef {
 
 export interface CylinderCardsProps {
   className?: string;
-  onPanelClick?: (card: NumberedCardData) => void;
+  onPanelClick?: (card: NumberedCardData, rect?: CardRect) => void;
+  onExpandChange?: (isExpanded: boolean) => void;
+  isFrozen?: boolean;
 }
 
 export const CylinderCards = forwardRef<CylinderCardsRef, CylinderCardsProps>(
-  ({ className = "", onPanelClick }, ref) => {
+  ({ className = "", onPanelClick, onExpandChange, isFrozen = false }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const frontContainerRef = useRef<HTMLDivElement>(null);
     const [scrollProgress, setScrollProgress] = useState(0);
+    const [expandedData, setExpandedData] = useState<{
+      card: NumberedCardData;
+      rect: CardRect;
+    } | null>(null);
+
+    const sharedHoveredIndexRef = useRef<number>(-1);
+
+    const handlePanelClick = useCallback((card: NumberedCardData, rect?: CardRect) => {
+      const fallbackRect: CardRect = rect || {
+        left: typeof window !== "undefined" ? window.innerWidth / 2 - 160 : 200,
+        top: typeof window !== "undefined" ? window.innerHeight / 2 - 90 : 200,
+        width: 320,
+        height: 180,
+      };
+      setExpandedData({ card, rect: fallbackRect });
+      onExpandChange?.(true);
+      onPanelClick?.(card, fallbackRect);
+    }, [onPanelClick, onExpandChange]);
+
+    const handleClose = useCallback(() => {
+      setExpandedData(null);
+      onExpandChange?.(false);
+    }, [onExpandChange]);
 
     useImperativeHandle(ref, () => ({
       get container() {
@@ -65,7 +92,9 @@ export const CylinderCards = forwardRef<CylinderCardsRef, CylinderCardsProps>(
             cycles={5}
             cardDepth={100}
             renderHalf="back"
-            onPanelClick={onPanelClick}
+            onPanelClick={handlePanelClick}
+            isFrozen={isFrozen || !!expandedData}
+            sharedHoveredIndexRef={sharedHoveredIndexRef}
           />
         </div>
 
@@ -83,9 +112,22 @@ export const CylinderCards = forwardRef<CylinderCardsRef, CylinderCardsProps>(
             cycles={5}
             cardDepth={100}
             renderHalf="front"
-            onPanelClick={onPanelClick}
+            onPanelClick={handlePanelClick}
+            isFrozen={isFrozen || !!expandedData}
+            sharedHoveredIndexRef={sharedHoveredIndexRef}
           />
         </div>
+
+        {/* Expanded Card Modal */}
+        <AnimatePresence>
+          {expandedData && (
+            <ExpandedOfferingCard
+              card={expandedData.card}
+              rect={expandedData.rect}
+              onClose={handleClose}
+            />
+          )}
+        </AnimatePresence>
       </>
     );
   }
