@@ -18,11 +18,39 @@ export default function TransitionSection({
 }: TransitionSectionProps) {
   return (
     <>
-      {/* Container for "The future doesn't wait..." (z-20) */}
+      {/*
+        Text 2 — "The FUTURE doesn't wait. Neither should your BUSINESS."
+        Two overlapping layers so regular text gets mix-blend-difference
+        while highlighted words render with their normal rainbow gradient.
+      */}
+
+      {/* Layer A: mix-blend-difference — hides highlight characters */}
       <div
         ref={text2Ref}
-        className="absolute inset-0 z-20 flex items-center justify-center m-0 px-[6%] text-center mix-blend-difference pointer-events-none select-none [will-change:opacity,transform] opacity-0"
+        className="absolute inset-0 z-40 flex items-center justify-center m-0 px-[6%] text-center mix-blend-difference pointer-events-none select-none [will-change:opacity,transform] opacity-0 [&_.fold-text-highlight]:invisible"
         style={{ display: "none" }}
+      >
+        <div className="flex flex-col items-start justify-center max-w-4xl w-full gap-y-5">
+          <ScrollFoldText
+            text={transitionData.phase1.text}
+            fontSize="clamp(1.2rem, 2.5vw, 2.1rem)"
+            highlightWords={transitionData.phase1.highlights}
+            align="left"
+          />
+          <ScrollFoldText
+            text={transitionData.phase1.subText}
+            fontSize="clamp(0.8rem, 1.3vw, 1.1rem)"
+            highlightWords={transitionData.phase1.highlights}
+            align="left"
+          />
+        </div>
+      </div>
+
+      {/* Layer B: no blend — shows only highlights, hides regular text */}
+      <div
+        className="absolute inset-0 z-[41] flex items-center justify-center m-0 px-[6%] text-center pointer-events-none select-none [will-change:opacity,transform] opacity-0 [&_.fold-text-piece:not(.fold-text-highlight)]:invisible"
+        style={{ display: "none" }}
+        data-text2-overlay
       >
         <div className="flex flex-col items-start justify-center max-w-4xl w-full gap-y-5">
           <ScrollFoldText

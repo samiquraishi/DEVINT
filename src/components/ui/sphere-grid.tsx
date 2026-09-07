@@ -93,6 +93,7 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
     const scrollVelocityRef = useRef(0);
     const dissolveProgressRef = useRef(0);
     const dissolveStartRowRef = useRef<number | null>(null);
+    const lastRenderTimeRef = useRef(0);
 
     // Track isActive via ref so the RAF loop can check it without being in the
     // heavy useEffect dependency array (which would teardown/recreate the canvas).
@@ -227,12 +228,17 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
       });
     }
 
-    const render = () => {
+    const render = (now: DOMHighResTimeStamp) => {
       if (!isActiveRef.current) {
         // Keep loop alive so it resumes instantly when activated
+        lastRenderTimeRef.current = 0;
         animationFrameId = requestAnimationFrame(render);
         return;
       }
+
+      const dt = lastRenderTimeRef.current === 0 ? 16.666 : now - lastRenderTimeRef.current;
+      lastRenderTimeRef.current = now;
+      const timeScale = dt / 16.666;
 
       frameCount++;
       const ctx = canvas.getContext("2d", { alpha: false });
@@ -255,9 +261,10 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
       const cx = logicalWidth / 2;
       const cy = logicalHeight / 2;
 
-      // Parallax smooth interpolation
-      parallaxRef.current.cx += (parallaxRef.current.tx - parallaxRef.current.cx) * 0.06;
-      parallaxRef.current.cy += (parallaxRef.current.ty - parallaxRef.current.cy) * 0.06;
+      // Parallax smooth interpolation (frame-rate independent)
+      const pK = 1 - Math.pow(1 - 0.06, timeScale);
+      parallaxRef.current.cx += (parallaxRef.current.tx - parallaxRef.current.cx) * pK;
+      parallaxRef.current.cy += (parallaxRef.current.ty - parallaxRef.current.cy) * pK;
       const pOffsetX = parallaxRef.current.cx * (parallaxStrength * 0.5);
       const pOffsetY = parallaxRef.current.cy * (parallaxStrength * 0.5);
       const eyeX = parallaxRef.current.cx * (parallaxStrength * 0.7);
@@ -298,12 +305,13 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
       // Gentle global time for subtle background breathing
       const time = performance.now() * 0.0018;
 
-      // Momentum-based scroll — integrate velocity with friction (mirrors Starfield behaviour)
-      const friction = 0.88;
+      // Momentum-based scroll — integrate velocity with friction (frame-rate independent)
+      const friction = Math.pow(0.88, timeScale);
       scrollVelocityRef.current *= friction;
       // Also drain any legacy target offset
-      currentScrollRef.current.x += (targetScrollRef.current.x - currentScrollRef.current.x) * 0.06;
-      currentScrollRef.current.y += scrollVelocityRef.current;
+      const sK = 1 - Math.pow(1 - 0.06, timeScale);
+      currentScrollRef.current.x += (targetScrollRef.current.x - currentScrollRef.current.x) * sK;
+      currentScrollRef.current.y += scrollVelocityRef.current * timeScale;
 
       const scrollX = currentScrollRef.current.x;
       const scrollY = currentScrollRef.current.y;
@@ -399,7 +407,8 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
             state = { elevation: targetElevation * 0.3, lastSeen: frameCount };
             cellStateRef.current.set(key, state);
           }
-          state.elevation += (targetElevation - state.elevation) * elevationSmoothing;
+          const eK = 1 - Math.pow(1 - elevationSmoothing, timeScale);
+          state.elevation += (targetElevation - state.elevation) * eK;
           state.lastSeen = frameCount;
           const elev = state.elevation;
 
