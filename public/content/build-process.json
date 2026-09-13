@@ -1,0 +1,53 @@
+{
+  "section": {
+    "name": "The Way We Build",
+    "intro_heading": "THE WAY WE BUILD",
+    "intro_subtitle": "From the first thought to the final product, every detail matters.",
+    "stages": [
+      {
+        "step": "01",
+        "heading": "WE UNDERSTAND YOUR VISION.",
+        "subtitle": "We start by understanding what you want to achieve, who it's for, and what it needs to accomplish.",
+        "pointers": [
+          "Goals & requirements",
+          "Users & use cases",
+          "Scope & priorities"
+        ],
+        "step_line": "DISCOVER → DEFINE → PLAN"
+      },
+      {
+        "step": "02",
+        "heading": "WE DESIGN THE WAY FORWARD.",
+        "subtitle": "We turn your vision into a clear experience and a practical plan for bringing it to life.",
+        "pointers": [
+          "User experience & interface",
+          "Product structure",
+          "Technical direction"
+        ],
+        "step_line": "IDEATE → DESIGN → ARCHITECT"
+      },
+      {
+        "step": "03",
+        "heading": "WE BUILD THE TECHNOLOGY.",
+        "subtitle": "We bring design, software, AI, data, and systems together into something that works.",
+        "pointers": [
+          "Web & mobile development",
+          "Backend, APIs & databases",
+          "AI, automation & data"
+        ],
+        "step_line": "ENGINEER → INTEGRATE → TEST"
+      },
+      {
+        "step": "04",
+        "heading": "WE HELP IT EVOLVE.",
+        "subtitle": "We refine, improve, and support your technology as your needs continue to change.",
+        "pointers": [
+          "Testing & refinement",
+          "Launch & deployment",
+          "Improvements & ongoing support"
+        ],
+        "step_line": "LAUNCH → OPTIMIZE → EVOLVE"
+      }
+    ]
+  }
+}

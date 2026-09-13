@@ -276,7 +276,7 @@ export const OfferingSection = forwardRef<OfferingSectionRef, OfferingSectionPro
         ref={containerRef}
         className={`absolute inset-0 z-[45] flex items-center justify-center w-full h-full overflow-hidden opacity-0 pointer-events-none [will-change:opacity,transform] ${className}`}
       >
-        <div ref={bgWrapperRef} className="relative w-full h-full bg-[#f4f4f5] overflow-hidden">
+        <div ref={bgWrapperRef} className="relative w-full h-full bg-transparent overflow-hidden">
           {/* 3D Sphere Grid Background */}
           <SphereGrid
             ref={sphereGridRef}

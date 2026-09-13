@@ -6,6 +6,7 @@ import HeroSection from "@/app/pages/landing-page/sections/hero";
 import TransitionSection from "@/app/pages/landing-page/sections/transition";
 import ProblemSection, { ProblemSectionRef } from "@/app/pages/landing-page/sections/problem";
 import OfferingSection, { OfferingSectionRef } from "@/app/pages/landing-page/sections/offering";
+import BuildProcessSection, { BuildProcessSectionRef } from "@/app/pages/landing-page/sections/build-process";
 import type { GlowingOrbHandle } from "./glowing-orb";
 import { clamp, smoothstep } from "@/lib/utils";
 
@@ -106,18 +107,21 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
   const orbRef = useRef<GlowingOrbHandle | null>(null);
   const problemRef = useRef<ProblemSectionRef | null>(null);
   const offeringRef = useRef<OfferingSectionRef | null>(null);
+  const buildProcessRef = useRef<BuildProcessSectionRef | null>(null);
 
   const showText2Ref = useRef(false);
   const showLine2Ref = useRef(false);
   const showText3Ref = useRef(false);
   const showProblemRef = useRef(false);
   const showOfferingRef = useRef(false);
+  const showBuildProcessRef = useRef(false);
 
   const [renderText2, setRenderText2] = useState(false);
   const [renderLine2, setRenderLine2] = useState(false);
   const [renderText3, setRenderText3] = useState(false);
   const [problemActive, setProblemActive] = useState(false);
   const [offeringActive, setOfferingActive] = useState(false);
+  const [buildProcessActive, setBuildProcessActive] = useState(false);
 
   const propsRef = useRef<Required<Pick<ScrollExpandProps, ConfigKey>>>(
     {} as Required<Pick<ScrollExpandProps, ConfigKey>>
@@ -142,9 +146,27 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     if (!frame || !media) return;
     const c = propsRef.current;
 
+    // Custom section scroll pacing:
+    // +20% scroll for Hero section (pTotal 0.00 -> 0.04 takes 0.048 raw scroll)
+    // +10% scroll for Transition section (pTotal 0.04 -> 0.30 takes 0.286 raw scroll)
+    // +10% scroll for Problem section (pTotal 0.30 -> 0.72 takes 0.462 raw scroll)
+    // +10% scroll for Offering section (pTotal 0.72 -> 1.00 takes 0.308 raw scroll)
+    // From 1.00 onwards (Build Process & empty scrolls): normal 1:1 speed
+    let pTotal = progressY;
+    if (progressY <= 0.048) {
+      pTotal = progressY / 1.20;
+    } else if (progressY <= 0.334) {
+      pTotal = 0.04 + (progressY - 0.048) / 1.10;
+    } else if (progressY <= 0.796) {
+      pTotal = 0.30 + (progressY - 0.334) / 1.10;
+    } else if (progressY <= 1.104) {
+      pTotal = 0.72 + (progressY - 0.796) / 1.10;
+    } else {
+      pTotal = 1.00 + (progressY - 1.104);
+    }
+
     const ratio = (c.scrollDistance + c.holdDistance) / c.scrollDistance;
-    const p = clamp(progressY * ratio, 0, 1);
-    const pTotal = progressY;
+    const p = clamp(pTotal * ratio, 0, 1);
 
     const e = smoothstep(0, 0.4, p);
 
@@ -155,14 +177,19 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     const iy = Math.max(0, iy_start * (1 - e));
 
     if (backdropRef.current) {
-      backdropRef.current.style.clipPath = `polygon(
-        0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%,
-        ${ix}% ${iy}%,
-        ${ix}% ${100 - iy}%,
-        ${100 - ix}% ${100 - iy}%,
-        ${100 - ix}% ${iy}%,
-        ${ix}% ${iy}%
-      )`;
+      if (pTotal >= 0.16) {
+        backdropRef.current.style.display = "none";
+      } else {
+        backdropRef.current.style.display = "block";
+        backdropRef.current.style.clipPath = `polygon(
+          0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%,
+          ${ix}% ${iy}%,
+          ${ix}% ${100 - iy}%,
+          ${100 - ix}% ${100 - iy}%,
+          ${100 - ix}% ${iy}%,
+          ${ix}% ${iy}%
+        )`;
+      }
     }
 
     if (scrimRef.current) scrimRef.current.style.opacity = `${c.overlayScrim * e}`;
@@ -277,7 +304,9 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     }
 
     // Offering Section: Appears after Problem Section with a deliberate gap before Scene 1
-    const activeOffering = pTotal >= 0.72;
+    // The sphere grid dissolves from 0.955 to 1.000 into the dark radial vignette background
+    // and reveals the scattered particles of the Build Process section behind the cubes.
+    const activeOffering = pTotal >= 0.72 && pTotal <= 1.005;
     if (activeOffering !== showOfferingRef.current) {
       showOfferingRef.current = activeOffering;
       setOfferingActive(activeOffering);
@@ -286,21 +315,54 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     if (offeringRef.current) {
       const container = offeringRef.current.container;
       if (container) {
-        if (pTotal >= 0.72) {
+        if (pTotal >= 0.72 && pTotal <= 1.005) {
           const offeringFadeIn = smoothstep(0.72, 0.74, pTotal);
           container.style.opacity = `${offeringFadeIn}`;
-          if (pTotal >= 0.74) {
+          container.style.display = "flex";
+          if (pTotal >= 0.74 && pTotal <= 0.96) {
             container.style.pointerEvents = "auto";
           } else {
             container.style.pointerEvents = "none";
           }
         } else {
           container.style.opacity = "0";
+          container.style.display = "none";
           container.style.pointerEvents = "none";
         }
       }
-      if (pTotal >= 0.72) {
+      if (pTotal >= 0.72 && pTotal <= 1.005) {
         offeringRef.current.updateProgress(pTotal);
+      }
+    }
+
+    // Build Process Section: Mounts at 0.950 so particles are live behind the dissolving cubes (0.955 -> 1.000)
+    // Stays active through the empty scrolls at the end of the page — never fades out to white!
+    const activeBuildProcess = pTotal >= 0.95;
+    if (activeBuildProcess !== showBuildProcessRef.current) {
+      showBuildProcessRef.current = activeBuildProcess;
+      setBuildProcessActive(activeBuildProcess);
+    }
+
+    if (buildProcessRef.current) {
+      const container = buildProcessRef.current.container;
+      if (container) {
+        if (pTotal >= 0.95) {
+          container.style.display = "flex";
+          const buildFadeIn = smoothstep(0.95, 0.965, pTotal);
+          container.style.opacity = `${buildFadeIn}`;
+          if (pTotal >= 1.00 && pTotal <= 1.95) {
+            container.style.pointerEvents = "auto";
+          } else {
+            container.style.pointerEvents = "none";
+          }
+        } else {
+          container.style.opacity = "0";
+          container.style.display = "none";
+          container.style.pointerEvents = "none";
+        }
+      }
+      if (pTotal >= 0.95) {
+        buildProcessRef.current.updateProgress(pTotal);
       }
     }
 
@@ -342,15 +404,17 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
       stage.style.setProperty("--se-title-size", `${clamp(w * 0.19, 52, 235)}px`);
     };
 
+    const BASE_HOLD_SPAN = 24.0;
+
     const readProgress = () => {
       const c = propsRef.current;
       if (!c.enabled) return 1;
-      const totalSpan = stageH * (Math.max(0.01, c.scrollDistance) + Math.max(0, c.holdDistance));
-      if (c.useWindowScroll) {
-        const top = track.getBoundingClientRect().top;
-        return clamp(-top / totalSpan, 0, 1);
-      }
-      return clamp(root.scrollTop / totalSpan, 0, 1);
+      const baseSpan = stageH * BASE_HOLD_SPAN;
+      const currentPx = c.useWindowScroll
+        ? -track.getBoundingClientRect().top
+        : root.scrollTop;
+      const maxProgress = (Math.max(0.01, c.scrollDistance) + Math.max(0, c.holdDistance)) / BASE_HOLD_SPAN;
+      return clamp(currentPx / baseSpan, 0, maxProgress);
     };
 
     let lastTime = 0;
@@ -499,6 +563,10 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
           <OfferingSection
             ref={offeringRef}
             isActive={offeringActive}
+          />
+          <BuildProcessSection
+            ref={buildProcessRef}
+            isActive={buildProcessActive}
           />
           {scrollHint ? (
             <div

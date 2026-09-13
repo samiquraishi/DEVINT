@@ -3,7 +3,7 @@ import type { NumberedCardData } from "./cardTextures";
 
 export type SceneProps = Omit<GalleryProps, "onPanelClick"> & {
   backgroundTheme?: 'white';
-  onPanelClick?: (card: NumberedCardData, rect?: CardRect) => void;
+  onPanelClick?: (card: NumberedCardData, rect?: CardRect, panelIndex?: number) => void;
   onProgressChange?: (info: StreamProgressInfo) => void;
   resetTrigger?: number;
   stepNextTrigger?: number;
@@ -36,6 +36,7 @@ export function Scene({
   renderHalf = 'all',
   isFrozen = false,
   sharedHoveredIndexRef,
+  cardClipRef,
 }: SceneProps) {
   return (
     <div id="scene-wrapper" className="shader-frame">
@@ -62,6 +63,7 @@ export function Scene({
         renderHalf={renderHalf}
         isFrozen={isFrozen}
         sharedHoveredIndexRef={sharedHoveredIndexRef}
+        cardClipRef={cardClipRef}
       />
     </div>
   );
