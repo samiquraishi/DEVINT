@@ -27,6 +27,7 @@ export interface CardRect {
   top: number;
   width: number;
   height: number;
+  panelIndex?: number;
 }
 
 export type GalleryProps = {
@@ -46,7 +47,7 @@ export type GalleryProps = {
   style?: CSSProperties;
   interactive?: boolean;
   wireframe?: boolean;
-  onPanelClick?: (card: NumberedCardData, rect?: CardRect) => void;
+  onPanelClick?: (card: NumberedCardData, rect?: CardRect, panelIndex?: number) => void;
   onProgressChange?: (info: StreamProgressInfo) => void;
   resetTrigger?: number;
   stepNextTrigger?: number;
@@ -55,7 +56,7 @@ export type GalleryProps = {
   renderHalf?: 'front' | 'back' | 'all';
   isFrozen?: boolean;
   sharedHoveredIndexRef?: React.MutableRefObject<number>;
-  cardClipRef?: React.RefObject<{ cardId: number; progress: number; phase: 'leaving' | 'returning' } | null>;
+  cardClipRef?: React.RefObject<{ cardId: number; panelIndex?: number; progress: number; phase: 'leaving' | 'returning' } | null>;
 };
 
 export const GALLERY_DEFAULTS = {
@@ -675,7 +676,12 @@ export function Gallery({
 
         // Card clip-plane animation (top-to-bottom wipe in/out)
         const clipState = cardClipRef?.current;
-        if (clipState && panel.card.id === clipState.cardId) {
+        const isTargetPanel = clipState && (
+          clipState.panelIndex !== undefined
+            ? panel.index === clipState.panelIndex
+            : panel.card.id === clipState.cardId
+        );
+        if (isTargetPanel) {
           const worldY = group.position.y;
           const topY = worldY + cardHeight / 2;
           if (clipState.phase === 'leaving') {
@@ -874,6 +880,7 @@ export function Gallery({
                 top: centerY - cardPixelHeight / 2,
                 width: cardPixelWidth,
                 height: cardPixelHeight,
+                panelIndex: uData.index,
               };
             } catch {
               rect = {
@@ -881,9 +888,10 @@ export function Gallery({
                 top: e.clientY - 90,
                 width: 320,
                 height: 180,
+                panelIndex: uData.index,
               };
             }
-            settingsRef.current.onPanelClick(uData.card, rect);
+            settingsRef.current.onPanelClick(uData.card, rect, uData.index);
           }
         }
       }

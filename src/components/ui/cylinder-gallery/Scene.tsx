@@ -3,7 +3,7 @@ import type { NumberedCardData } from "./cardTextures";
 
 export type SceneProps = Omit<GalleryProps, "onPanelClick"> & {
   backgroundTheme?: 'white';
-  onPanelClick?: (card: NumberedCardData, rect?: CardRect) => void;
+  onPanelClick?: (card: NumberedCardData, rect?: CardRect, panelIndex?: number) => void;
   onProgressChange?: (info: StreamProgressInfo) => void;
   resetTrigger?: number;
   stepNextTrigger?: number;

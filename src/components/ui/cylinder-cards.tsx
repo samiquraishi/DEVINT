@@ -13,7 +13,7 @@ export interface CylinderCardsRef {
 
 export interface CylinderCardsProps {
   className?: string;
-  onPanelClick?: (card: NumberedCardData, rect?: CardRect) => void;
+  onPanelClick?: (card: NumberedCardData, rect?: CardRect, panelIndex?: number) => void;
   onExpandChange?: (isExpanded: boolean) => void;
   isFrozen?: boolean;
 }
@@ -31,17 +31,18 @@ export const CylinderCards = forwardRef<CylinderCardsRef, CylinderCardsProps>(
 
     const sharedHoveredIndexRef = useRef<number>(-1);
 
-    const cardClipRef = useRef<{ cardId: number; progress: number; phase: 'leaving' | 'returning' } | null>(null);
+    const cardClipRef = useRef<{ cardId: number; panelIndex?: number; progress: number; phase: 'leaving' | 'returning' } | null>(null);
 
-    const handlePanelClick = useCallback((card: NumberedCardData, rect?: CardRect) => {
+    const handlePanelClick = useCallback((card: NumberedCardData, rect?: CardRect, panelIndex?: number) => {
       if (animPhase !== null) return;
+      const targetPanelIndex = panelIndex ?? rect?.panelIndex;
       // Start phase 1: card leaves the ring
       setExpandedCard(card);
       setHiddenCardId(card.id);
       setAnimPhase("card-leaving");
-      onPanelClick?.(card, rect);
+      onPanelClick?.(card, rect, targetPanelIndex);
 
-      cardClipRef.current = { cardId: card.id, progress: 0, phase: 'leaving' };
+      cardClipRef.current = { cardId: card.id, panelIndex: targetPanelIndex, progress: 0, phase: 'leaving' };
       
       const startTime = performance.now();
       const animateRingWipeOut = (now: number) => {
