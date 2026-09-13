@@ -1,7 +1,7 @@
 import React, { forwardRef, useImperativeHandle, useRef, useState, useCallback } from "react";
-import { AnimatePresence } from "framer-motion";
 import { Scene } from "./cylinder-gallery/Scene";
-import { ExpandedOfferingCard, type CardRect } from "./expanded-offering-card";
+import { ExpandedOfferingCard, type CardAnimPhase } from "./expanded-offering-card";
+import type { CardRect } from "./cylinder-gallery/Gallery";
 import { clamp } from "@/lib/utils";
 
 import type { NumberedCardData } from "./cylinder-gallery/cardTextures";
@@ -18,34 +18,107 @@ export interface CylinderCardsProps {
   isFrozen?: boolean;
 }
 
+const RING_WIPE_DURATION = 380; // ms — how long the card takes to vanish/reappear in the ring
+
 export const CylinderCards = forwardRef<CylinderCardsRef, CylinderCardsProps>(
   ({ className = "", onPanelClick, onExpandChange, isFrozen = false }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const frontContainerRef = useRef<HTMLDivElement>(null);
     const [scrollProgress, setScrollProgress] = useState(0);
-    const [expandedData, setExpandedData] = useState<{
-      card: NumberedCardData;
-      rect: CardRect;
-    } | null>(null);
+    const [expandedCard, setExpandedCard] = useState<NumberedCardData | null>(null);
+    const [animPhase, setAnimPhase] = useState<CardAnimPhase | null>(null);
+    const [hiddenCardId, setHiddenCardId] = useState<number | null>(null);
 
     const sharedHoveredIndexRef = useRef<number>(-1);
 
+    const cardClipRef = useRef<{ cardId: number; progress: number; phase: 'leaving' | 'returning' } | null>(null);
+
     const handlePanelClick = useCallback((card: NumberedCardData, rect?: CardRect) => {
-      const fallbackRect: CardRect = rect || {
-        left: typeof window !== "undefined" ? window.innerWidth / 2 - 160 : 200,
-        top: typeof window !== "undefined" ? window.innerHeight / 2 - 90 : 200,
-        width: 320,
-        height: 180,
+      if (animPhase !== null) return;
+      // Start phase 1: card leaves the ring
+      setExpandedCard(card);
+      setHiddenCardId(card.id);
+      setAnimPhase("card-leaving");
+      onPanelClick?.(card, rect);
+
+      cardClipRef.current = { cardId: card.id, progress: 0, phase: 'leaving' };
+      
+      const startTime = performance.now();
+      const animateRingWipeOut = (now: number) => {
+        const elapsed = now - startTime;
+        const t = Math.min(elapsed / RING_WIPE_DURATION, 1);
+        const eased = Math.pow(t, 3); // Cubic ease-in
+        if (cardClipRef.current) {
+          cardClipRef.current.progress = eased;
+        }
+        
+        if (t < 1) {
+          requestAnimationFrame(animateRingWipeOut);
+        } else {
+          setAnimPhase("entering");
+          // Freeze parent's SphereGrid now that animation is done.
+          onExpandChange?.(true);
+        }
       };
-      setExpandedData({ card, rect: fallbackRect });
-      onExpandChange?.(true);
-      onPanelClick?.(card, fallbackRect);
-    }, [onPanelClick, onExpandChange]);
+      requestAnimationFrame(animateRingWipeOut);
+
+    }, [animPhase, onPanelClick, onExpandChange]);
+
+    const handlePhaseComplete = useCallback((completedPhase: CardAnimPhase) => {
+      if (completedPhase === "entering") {
+        setAnimPhase("visible");
+      } else if (completedPhase === "leaving") {
+        // Expanded card has disappeared, now show card returning to ring
+        setAnimPhase("card-returning");
+
+        if (cardClipRef.current) {
+          cardClipRef.current.phase = 'returning';
+          cardClipRef.current.progress = 0;
+        }
+
+        // Unfreeze parent's SphereGrid so it can resume.
+        onExpandChange?.(false);
+
+        const startTime = performance.now();
+        const animateRingWipeIn = (now: number) => {
+          const elapsed = now - startTime;
+          const t = Math.min(elapsed / RING_WIPE_DURATION, 1);
+          const eased = 1 - Math.pow(1 - t, 3); // Cubic ease-out
+          if (cardClipRef.current) {
+            cardClipRef.current.progress = eased;
+          }
+
+          if (t < 1) {
+            requestAnimationFrame(animateRingWipeIn);
+          } else {
+            cardClipRef.current = null;
+            setHiddenCardId(null);
+            setExpandedCard(null);
+            setAnimPhase(null);
+          }
+        };
+        requestAnimationFrame(animateRingWipeIn);
+      }
+    }, [onExpandChange]);
 
     const handleClose = useCallback(() => {
-      setExpandedData(null);
-      onExpandChange?.(false);
-    }, [onExpandChange]);
+      if (animPhase !== "visible") return;
+      // Start closing: expanded card leaves
+      setAnimPhase("leaving");
+    }, [animPhase]);
+
+    // Lock scroll while modal is active (in any phase)
+    React.useEffect(() => {
+      if (animPhase !== null) {
+        const preventDefault = (e: Event) => e.preventDefault();
+        window.addEventListener("wheel", preventDefault, { passive: false });
+        window.addEventListener("touchmove", preventDefault, { passive: false });
+        return () => {
+          window.removeEventListener("wheel", preventDefault);
+          window.removeEventListener("touchmove", preventDefault);
+        };
+      }
+    }, [animPhase]);
 
     useImperativeHandle(ref, () => ({
       get container() {
@@ -76,6 +149,9 @@ export const CylinderCards = forwardRef<CylinderCardsRef, CylinderCardsProps>(
       },
     }));
 
+    const shouldFreezeScene =
+      animPhase === "entering" || animPhase === "visible" || animPhase === "leaving";
+
     return (
       <>
         {/* Back of the cylinder (rendered behind the text) */}
@@ -93,8 +169,9 @@ export const CylinderCards = forwardRef<CylinderCardsRef, CylinderCardsProps>(
             cardDepth={100}
             renderHalf="back"
             onPanelClick={handlePanelClick}
-            isFrozen={isFrozen || !!expandedData}
+            isFrozen={isFrozen || shouldFreezeScene}
             sharedHoveredIndexRef={sharedHoveredIndexRef}
+            cardClipRef={cardClipRef}
           />
         </div>
 
@@ -113,21 +190,21 @@ export const CylinderCards = forwardRef<CylinderCardsRef, CylinderCardsProps>(
             cardDepth={100}
             renderHalf="front"
             onPanelClick={handlePanelClick}
-            isFrozen={isFrozen || !!expandedData}
+            isFrozen={isFrozen || shouldFreezeScene}
             sharedHoveredIndexRef={sharedHoveredIndexRef}
+            cardClipRef={cardClipRef}
           />
         </div>
 
         {/* Expanded Card Modal */}
-        <AnimatePresence>
-          {expandedData && (
-            <ExpandedOfferingCard
-              card={expandedData.card}
-              rect={expandedData.rect}
-              onClose={handleClose}
-            />
-          )}
-        </AnimatePresence>
+        {expandedCard && animPhase && (
+          <ExpandedOfferingCard
+            card={expandedCard}
+            phase={animPhase}
+            onPhaseComplete={handlePhaseComplete}
+            onClose={handleClose}
+          />
+        )}
       </>
     );
   }

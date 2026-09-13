@@ -59,8 +59,8 @@ export default function LandingPage() {
           endRadius={0}
           mediaZoom={1.0}
           scrollDistance={2.0}
-          holdDistance={32.0}
-          smoothing={0}
+          holdDistance={58.0}
+          smoothing={0.08}
           overlayScrim={0.0}
           useWindowScroll={true}
         />

@@ -55,6 +55,7 @@ export type GalleryProps = {
   renderHalf?: 'front' | 'back' | 'all';
   isFrozen?: boolean;
   sharedHoveredIndexRef?: React.MutableRefObject<number>;
+  cardClipRef?: React.RefObject<{ cardId: number; progress: number; phase: 'leaving' | 'returning' } | null>;
 };
 
 export const GALLERY_DEFAULTS = {
@@ -118,6 +119,7 @@ export function Gallery({
     renderHalf = 'all',
     isFrozen = false,
     sharedHoveredIndexRef,
+    cardClipRef,
   }: GalleryProps) {
     const hostRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -221,6 +223,7 @@ export function Gallery({
       powerPreference: "high-performance",
     });
     renderer.setClearColor(0x000000, 0);
+    renderer.localClippingEnabled = true;
 
     if ('outputColorSpace' in renderer) {
       (renderer as any).outputColorSpace = THREE.SRGBColorSpace;
@@ -305,8 +308,10 @@ export function Gallery({
       group: THREE.Group;
       backplateMesh: THREE.Mesh;
       contentMesh: THREE.Mesh;
+      overlayMesh: THREE.Mesh;
       backplateMat: THREE.MeshBasicMaterial;
       contentMat: THREE.MeshBasicMaterial;
+      overlayMat: THREE.MeshBasicMaterial;
       defaultContentTex: THREE.CanvasTexture;
       hoverContentTex: THREE.CanvasTexture;
       card: NumberedCardData;
@@ -316,6 +321,7 @@ export function Gallery({
       cycleNumber: number;
       cardInCycle: number;
       currentScale: number;
+      clipPlane: THREE.Plane;
     }
 
     const panels: PanelItem[] = [];
@@ -362,12 +368,30 @@ export function Gallery({
         blendDstAlpha: THREE.OneFactor,
       });
 
+      // 3. Dark overlay material for back-side cards (very light black overlay, low opacity)
+      const overlayMat = new THREE.MeshBasicMaterial({
+        color: 0x000000,
+        opacity: 0.25,
+        transparent: true,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        wireframe: settingsRef.current.wireframe,
+      });
+
       const panelGroup = new THREE.Group();
       const backplateMesh = new THREE.Mesh(backplateGeometry, backplateMat);
       const contentMesh = new THREE.Mesh(contentGeometry, contentMat);
+      const overlayMesh = new THREE.Mesh(backplateGeometry, overlayMat);
+
+      // Per-panel clipping plane for card wipe animations (constant=99999 = no visible clip)
+      const panelClipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 99999);
+      backplateMat.clippingPlanes = [panelClipPlane];
+      contentMat.clippingPlanes = [panelClipPlane];
+      overlayMat.clippingPlanes = [panelClipPlane];
 
       panelGroup.add(backplateMesh);
       panelGroup.add(contentMesh);
+      panelGroup.add(overlayMesh);
 
       // Initial position staged above top of screen
       panelGroup.position.y = START_Y + index * PANEL_SPACING_Y;
@@ -382,8 +406,10 @@ export function Gallery({
         group: panelGroup,
         backplateMesh,
         contentMesh,
+        overlayMesh,
         backplateMat,
         contentMat,
+        overlayMat,
         defaultContentTex,
         hoverContentTex,
         card,
@@ -393,6 +419,7 @@ export function Gallery({
         cycleNumber,
         cardInCycle,
         currentScale: 1.0,
+        clipPlane: panelClipPlane,
       });
 
       interactiveMeshes.push(backplateMesh, contentMesh);
@@ -588,16 +615,21 @@ export function Gallery({
         // Frustum culling: Render cards within visible 3D cylindrical volume (front, sides, and back)
         const isVisible = targetY >= -50 && targetY <= 50;
 
-        let renderHalfVisible = true;
-        if (settingsRef.current.renderHalf !== 'all') {
-          const normalizedAngle = ((dynamicAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-          const isFront = normalizedAngle <= Math.PI / 2 || normalizedAngle >= (3 * Math.PI) / 2;
+        const normalizedAngle = ((dynamicAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+        const isFront = normalizedAngle <= Math.PI / 2 || normalizedAngle >= (3 * Math.PI) / 2;
 
-          if (settingsRef.current.renderHalf === 'front' && !isFront) {
-            renderHalfVisible = false;
-          } else if (settingsRef.current.renderHalf === 'back' && isFront) {
-            renderHalfVisible = false;
-          }
+        let renderHalfVisible = true;
+        if (settingsRef.current.renderHalf === 'front' && !isFront) {
+          renderHalfVisible = false;
+        } else if (settingsRef.current.renderHalf === 'back' && isFront) {
+          renderHalfVisible = false;
+        }
+
+        // Apply light black overlay to back-side cards in the ring
+        const isBackCard = settingsRef.current.renderHalf === 'back' || !isFront;
+        panel.overlayMesh.visible = isBackCard;
+        if (isBackCard) {
+          panel.overlayMat.opacity = 0.25;
         }
 
         // Always update 3D transform for all cards in vertical volume so they are positioned accurately
@@ -632,11 +664,32 @@ export function Gallery({
             group.renderOrder = 100;
             panel.backplateMesh.renderOrder = 100;
             panel.contentMesh.renderOrder = 101;
+            panel.overlayMesh.renderOrder = 102;
           } else {
             group.renderOrder = 0;
             panel.backplateMesh.renderOrder = 0;
             panel.contentMesh.renderOrder = 1;
+            panel.overlayMesh.renderOrder = 2;
           }
+        }
+
+        // Card clip-plane animation (top-to-bottom wipe in/out)
+        const clipState = cardClipRef?.current;
+        if (clipState && panel.card.id === clipState.cardId) {
+          const worldY = group.position.y;
+          const topY = worldY + cardHeight / 2;
+          if (clipState.phase === 'leaving') {
+            // Hide top-to-bottom: visible area shrinks from top
+            panel.clipPlane.normal.set(0, -1, 0);
+            panel.clipPlane.constant = topY - clipState.progress * cardHeight;
+          } else {
+            // Reveal top-to-bottom: visible area grows from top
+            panel.clipPlane.normal.set(0, 1, 0);
+            panel.clipPlane.constant = -topY + clipState.progress * cardHeight;
+          }
+        } else {
+          panel.clipPlane.normal.set(0, -1, 0);
+          panel.clipPlane.constant = 99999;
         }
       });
 

@@ -36,6 +36,7 @@ export function Scene({
   renderHalf = 'all',
   isFrozen = false,
   sharedHoveredIndexRef,
+  cardClipRef,
 }: SceneProps) {
   return (
     <div id="scene-wrapper" className="shader-frame">
@@ -62,6 +63,7 @@ export function Scene({
         renderHalf={renderHalf}
         isFrozen={isFrozen}
         sharedHoveredIndexRef={sharedHoveredIndexRef}
+        cardClipRef={cardClipRef}
       />
     </div>
   );

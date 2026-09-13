@@ -249,7 +249,7 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
       const timeScale = dt / 16.666;
 
       frameCount++;
-      const ctx = canvas.getContext("2d", { alpha: false });
+      const ctx = canvas.getContext("2d", { alpha: true });
       if (!ctx) return;
 
       if (canvas.width === 0 || canvas.height === 0) {
@@ -281,20 +281,14 @@ export const SphereGrid = forwardRef<SphereGridRef, SphereGridProps>(
       const dp = dissolveProgressRef.current;
 
       // Canvas background fill:
-      // When normal (dp === 0), solid #f4f4f5.
-      // When dissolving (dp > 0), smooth Starfield radial vignette with zero grid lines.
+      // When normal (dp === 0), solid backgroundColor (#f4f4f5).
+      // When dissolving (dp > 0), clear to transparent so scattered particles and starfield show through!
       if (dp > 0) {
-        const bgGrad = ctx.createRadialGradient(
-          width / 2, height / 2, 0,
-          width / 2, height / 2, Math.max(width, height) * 0.75
-        );
-        bgGrad.addColorStop(0, "rgb(8, 8, 26)");
-        bgGrad.addColorStop(1, "rgb(4, 4, 13)");
-        ctx.fillStyle = bgGrad;
+        ctx.clearRect(0, 0, width, height);
       } else {
         ctx.fillStyle = backgroundColor;
+        ctx.fillRect(0, 0, width, height);
       }
-      ctx.fillRect(0, 0, width, height);
 
       ctx.save();
       ctx.scale(dpr, dpr);
