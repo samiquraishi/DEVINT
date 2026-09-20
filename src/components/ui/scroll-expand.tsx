@@ -7,6 +7,7 @@ import TransitionSection from "@/app/pages/landing-page/sections/transition";
 import ProblemSection, { ProblemSectionRef } from "@/app/pages/landing-page/sections/problem";
 import OfferingSection, { OfferingSectionRef } from "@/app/pages/landing-page/sections/offering";
 import BuildProcessSection, { BuildProcessSectionRef } from "@/app/pages/landing-page/sections/build-process";
+import ClientSection, { ClientSectionRef } from "@/app/pages/landing-page/sections/client";
 import type { GlowingOrbHandle } from "./glowing-orb";
 import { clamp, smoothstep } from "@/lib/utils";
 
@@ -108,6 +109,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
   const problemRef = useRef<ProblemSectionRef | null>(null);
   const offeringRef = useRef<OfferingSectionRef | null>(null);
   const buildProcessRef = useRef<BuildProcessSectionRef | null>(null);
+  const clientRef = useRef<ClientSectionRef | null>(null);
 
   const showText2Ref = useRef(false);
   const showLine2Ref = useRef(false);
@@ -115,6 +117,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
   const showProblemRef = useRef(false);
   const showOfferingRef = useRef(false);
   const showBuildProcessRef = useRef(false);
+  const showClientRef = useRef(false);
 
   const [renderText2, setRenderText2] = useState(false);
   const [renderLine2, setRenderLine2] = useState(false);
@@ -122,6 +125,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
   const [problemActive, setProblemActive] = useState(false);
   const [offeringActive, setOfferingActive] = useState(false);
   const [buildProcessActive, setBuildProcessActive] = useState(false);
+  const [clientActive, setClientActive] = useState(false);
 
   const propsRef = useRef<Required<Pick<ScrollExpandProps, ConfigKey>>>(
     {} as Required<Pick<ScrollExpandProps, ConfigKey>>
@@ -336,8 +340,8 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     }
 
     // Build Process Section: Mounts at 0.950 so particles are live behind the dissolving cubes (0.955 -> 1.000)
-    // Stays active through the empty scrolls at the end of the page — never fades out to white!
-    const activeBuildProcess = pTotal >= 0.95;
+    // Fades out as Client section takes over at 1.80
+    const activeBuildProcess = pTotal >= 0.95 && pTotal <= 1.85;
     if (activeBuildProcess !== showBuildProcessRef.current) {
       showBuildProcessRef.current = activeBuildProcess;
       setBuildProcessActive(activeBuildProcess);
@@ -346,11 +350,11 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     if (buildProcessRef.current) {
       const container = buildProcessRef.current.container;
       if (container) {
-        if (pTotal >= 0.95) {
+        if (pTotal >= 0.95 && pTotal <= 1.85) {
           container.style.display = "flex";
           const buildFadeIn = smoothstep(0.95, 0.965, pTotal);
           container.style.opacity = `${buildFadeIn}`;
-          if (pTotal >= 1.00 && pTotal <= 1.95) {
+          if (pTotal >= 1.00 && pTotal <= 1.81) {
             container.style.pointerEvents = "auto";
           } else {
             container.style.pointerEvents = "none";
@@ -361,10 +365,42 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
           container.style.pointerEvents = "none";
         }
       }
-      if (pTotal >= 0.95) {
+      if (pTotal >= 0.95 && pTotal <= 1.85) {
         buildProcessRef.current.updateProgress(pTotal);
       }
     }
+
+    // Client Section: Preloads at 1.40 to warm up WebGL/Three.js, enters at 1.80
+    const activeClient = pTotal >= 1.40;
+    if (activeClient !== showClientRef.current) {
+      showClientRef.current = activeClient;
+      setClientActive(activeClient);
+    }
+
+    if (clientRef.current) {
+      const container = clientRef.current.container;
+      if (container) {
+        if (pTotal >= 1.80) {
+          container.style.display = "flex";
+          container.style.visibility = "visible";
+          const clientFadeIn = smoothstep(1.80, 1.83, pTotal);
+          container.style.opacity = `${clientFadeIn}`;
+          if (pTotal >= 1.83 && pTotal <= 2.50) {
+            container.style.pointerEvents = "auto";
+          } else {
+            container.style.pointerEvents = "none";
+          }
+        } else {
+          container.style.opacity = "0";
+          container.style.visibility = "hidden";
+          container.style.pointerEvents = "none";
+        }
+      }
+      if (pTotal >= 1.80) {
+        clientRef.current.updateProgress(pTotal);
+      }
+    }
+
 
     if (hintRef.current) {
       const gone = smoothstep(0, 0.12, p);
@@ -567,6 +603,10 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
           <BuildProcessSection
             ref={buildProcessRef}
             isActive={buildProcessActive}
+          />
+          <ClientSection
+            ref={clientRef}
+            isActive={clientActive}
           />
           {scrollHint ? (
             <div
