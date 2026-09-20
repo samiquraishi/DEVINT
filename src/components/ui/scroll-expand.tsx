@@ -380,7 +380,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     if (clientRef.current) {
       const container = clientRef.current.container;
       if (container) {
-        if (pTotal >= 1.80) {
+        if (pTotal >= 1.80 && pTotal <= 2.52) {
           container.style.display = "flex";
           container.style.visibility = "visible";
           const clientFadeIn = smoothstep(1.80, 1.83, pTotal);
@@ -393,10 +393,11 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
         } else {
           container.style.opacity = "0";
           container.style.visibility = "hidden";
+          container.style.display = "none";
           container.style.pointerEvents = "none";
         }
       }
-      if (pTotal >= 1.80) {
+      if (pTotal >= 1.70 && pTotal <= 2.60) {
         clientRef.current.updateProgress(pTotal);
       }
     }

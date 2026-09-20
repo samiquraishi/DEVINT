@@ -67,8 +67,8 @@ export type GlobeConfig = {
 export interface GlobeWorldRef {
   /** Set the globe's Y rotation directly from scroll progress */
   setScrollRotation: (angle: number) => void;
-  /** Set additional rotation speed boost from scroll velocity */
-  setVelocityBoost: (boost: number) => void;
+  /** Set the 3D scale of the globe directly (0.0 to 1.0) */
+  setScale: (scale: number) => void;
 }
 
 interface WorldProps {
@@ -80,51 +80,58 @@ interface WorldProps {
 function GlobeInner({
   globeConfig,
   data,
-  scrollRotationRef,
-  velocityBoostRef,
+  targetScrollRotationRef,
+  targetScaleRef,
 }: WorldProps & {
-  scrollRotationRef: React.MutableRefObject<number>;
-  velocityBoostRef: React.MutableRefObject<number>;
+  targetScrollRotationRef: React.MutableRefObject<number>;
+  targetScaleRef: React.MutableRefObject<number>;
 }) {
   const globeRef = useRef<ThreeGlobe | null>(null);
   const groupRef = useRef<Group>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
   const { camera, scene, gl } = useThree();
-  const currentRotation = useRef(0);
+
+  const smoothScrollRotation = useRef(0);
+  const dragRotationY = useRef(0);
+  const dragRotationX = useRef(0);
+  const dragVelocity = useRef({ x: 0, y: 0 });
+  const idleRotation = useRef(0);
+  const isDragging = useRef(false);
+  const prevPointer = useRef({ x: 0, y: 0 });
 
   const defaultProps = {
-    pointSize: 1,
+    pointSize: 1.4,
     atmosphereColor: "#ffffff",
     showAtmosphere: false,
     atmosphereAltitude: 0.1,
-    polygonColor: "rgba(255,255,255,0.7)",
-    polygonMargin: 0.7,
-    globeColor: "#1d072e",
-    globeOpacity: 1,
-    emissive: "#000000",
+    polygonColor: "#ffffff",
+    polygonMargin: 0.8,
+    globeColor: "#062056",
+    globeOpacity: 0.3,
+    emissive: "#062056",
     emissiveIntensity: 0.1,
     shininess: 0.9,
-    arcTime: 2000,
+    arcTime: 1500,
     arcLength: 0.9,
     rings: 1,
     maxRings: 3,
     ...globeConfig,
   };
 
-  // Initialize globe once
+  // Synchronous One-Pass Initialization on Mount
   useEffect(() => {
-    if (!globeRef.current && groupRef.current) {
-      globeRef.current = new ThreeGlobe();
-      (groupRef.current as any).add(globeRef.current);
-      setIsInitialized(true);
+    if (!groupRef.current) return;
+
+    if (globeRef.current) {
+      (groupRef.current as any).remove(globeRef.current);
+      globeRef.current = null;
     }
-  }, []);
 
-  // Build material
-  useEffect(() => {
-    if (!globeRef.current || !isInitialized) return;
+    const globe = new ThreeGlobe();
+    globeRef.current = globe;
+    (groupRef.current as any).add(globe);
 
-    const globeMaterial = globeRef.current.globeMaterial() as unknown as {
+    // 1. Material
+    const globeMaterial = globe.globeMaterial() as unknown as {
       color: Color;
       emissive: Color;
       emissiveIntensity: number;
@@ -132,27 +139,15 @@ function GlobeInner({
       transparent: boolean;
       opacity: number;
     };
-    globeMaterial.color = new Color(globeConfig.globeColor);
-    globeMaterial.emissive = new Color(globeConfig.emissive);
-    globeMaterial.emissiveIntensity = globeConfig.emissiveIntensity || 0.1;
-    globeMaterial.shininess = globeConfig.shininess || 0.9;
+    globeMaterial.color = new Color(defaultProps.globeColor);
+    globeMaterial.emissive = new Color(defaultProps.emissive);
+    globeMaterial.emissiveIntensity = defaultProps.emissiveIntensity;
+    globeMaterial.shininess = defaultProps.shininess;
     globeMaterial.transparent = true;
-    globeMaterial.opacity =
-      globeConfig.globeOpacity !== undefined ? globeConfig.globeOpacity : 1;
-  }, [
-    isInitialized,
-    globeConfig.globeColor,
-    globeConfig.globeOpacity,
-    globeConfig.emissive,
-    globeConfig.emissiveIntensity,
-    globeConfig.shininess,
-  ]);
+    globeMaterial.opacity = defaultProps.globeOpacity;
 
-  // Build data (hex polygons, arcs, orbs)
-  useEffect(() => {
-    if (!globeRef.current || !isInitialized || !data) return;
-
-    const arcs = data;
+    // 2. Arcs and Points
+    const arcs = data || [];
     const startPoints: any[] = [];
     const endPoints: any[] = [];
     for (let i = 0; i < arcs.length; i++) {
@@ -183,17 +178,19 @@ function GlobeInner({
         ) === i
     );
 
-    globeRef.current
+    // 3. Hex Polygons (Continents)
+    globe
       .hexPolygonsData(countries.features)
       .hexPolygonResolution(3)
-      .hexPolygonMargin(defaultProps.polygonMargin || 0.7)
+      .hexPolygonMargin(defaultProps.polygonMargin)
       .showAtmosphere(defaultProps.showAtmosphere)
       .atmosphereColor(defaultProps.atmosphereColor)
       .atmosphereAltitude(defaultProps.atmosphereAltitude)
       .hexPolygonColor(() => defaultProps.polygonColor);
 
-    globeRef.current
-      .arcsData(data)
+    // 4. Arcs
+    globe
+      .arcsData(arcs)
       .arcStartLat((d) => (d as { startLat: number }).startLat * 1)
       .arcStartLng((d) => (d as { startLng: number }).startLng * 1)
       .arcEndLat((d) => (d as { endLat: number }).endLat * 1)
@@ -206,7 +203,8 @@ function GlobeInner({
       .arcDashGap(15)
       .arcDashAnimateTime(() => defaultProps.arcTime);
 
-    globeRef.current
+    // 5. Custom Layer (Orbs and Ripples)
+    globe
       .customLayerData(filteredPoints)
       .customThreeObject((d: any) => {
         const group = new Group();
@@ -254,15 +252,16 @@ function GlobeInner({
           obj.lookAt(lookAtPos);
         }
       });
-  }, [isInitialized, data]);
+
+    return () => {
+      if (groupRef.current && globe) {
+        (groupRef.current as any).remove(globe);
+      }
+      globeRef.current = null;
+    };
+  }, [data]);
 
   // Direct pointer drag tracking (works across ocean, continents, and entire canvas)
-  const isDragging = useRef(false);
-  const prevPointer = useRef({ x: 0, y: 0 });
-  const dragVelocity = useRef({ x: 0, y: 0 });
-  const manualRotationY = useRef(0);
-  const manualRotationX = useRef(0);
-
   useEffect(() => {
     const dom = gl.domElement;
     if (!dom) return;
@@ -282,10 +281,10 @@ function GlobeInner({
 
       const factor = 0.005;
       dragVelocity.current = { x: dx * factor, y: dy * factor };
-      manualRotationY.current += dx * factor;
-      manualRotationX.current = Math.max(
+      dragRotationY.current += dx * factor;
+      dragRotationX.current = Math.max(
         -0.7,
-        Math.min(0.7, manualRotationX.current + dy * factor)
+        Math.min(0.7, dragRotationX.current + dy * factor)
       );
     };
 
@@ -296,38 +295,51 @@ function GlobeInner({
     dom.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerUp);
 
     return () => {
       dom.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerUp);
     };
   }, [gl]);
 
-  // Per-frame: drive rotation from drag, inertia, scroll + velocity boost, animate orb ripples
+  // Per-frame: drive rotation and 3D scale from fluid scroll tracking, mouse drag, inertia, and idle
   useFrame(() => {
     if (!groupRef.current) return;
 
-    if (!isDragging.current) {
-      // Smooth inertia decay on release
-      dragVelocity.current.x *= 0.95;
-      dragVelocity.current.y *= 0.95;
-      manualRotationY.current += dragVelocity.current.x;
-      manualRotationX.current = Math.max(
-        -0.7,
-        Math.min(0.7, manualRotationX.current + dragVelocity.current.y)
-      );
+    // 1. 3D scale (scales uniformly from center in 3D WebGL space, avoids Canvas CSS resize)
+    const s = targetScaleRef.current;
+    groupRef.current.scale.set(s, s, s);
 
-      // Idle rotation + scroll boost
-      const idleSpeed = 0.0015;
-      const boost = velocityBoostRef.current;
-      manualRotationY.current += idleSpeed + boost * 0.01;
+    // 2. Fluid momentum scroll rotation (smooth lerp, rotates right on scroll-down, LEFT on scroll-up!)
+    const target = targetScrollRotationRef.current;
+    const lerpFactor = 0.18; // Buttery smooth response identical to cylinder gallery
+    smoothScrollRotation.current += (target - smoothScrollRotation.current) * lerpFactor;
+    if (Math.abs(target - smoothScrollRotation.current) < 0.0005) {
+      smoothScrollRotation.current = target;
     }
 
-    // Scroll-driven rotation added on top
-    const targetScrollRotation = scrollRotationRef.current;
-    groupRef.current.rotation.y = manualRotationY.current + targetScrollRotation;
-    groupRef.current.rotation.x = manualRotationX.current;
+    // 3. Mouse drag inertia & idle rotation
+    if (!isDragging.current) {
+      dragVelocity.current.x *= 0.94;
+      dragVelocity.current.y *= 0.94;
+      dragRotationY.current += dragVelocity.current.x;
+      dragRotationX.current = Math.max(
+        -0.7,
+        Math.min(0.7, dragRotationX.current + dragVelocity.current.y)
+      );
+
+      // Continuous gentle idle spin
+      idleRotation.current += 0.001;
+    }
+
+    // 4. Composite rotation:
+    // Scroll rotation + drag rotation + idle spin
+    groupRef.current.rotation.y =
+      smoothScrollRotation.current + dragRotationY.current + idleRotation.current;
+    groupRef.current.rotation.x = dragRotationX.current;
 
     // Animate orb ripples and backface culling
     if (globeRef.current && camera && scene) {
@@ -361,31 +373,18 @@ function GlobeInner({
   return <group ref={groupRef} />;
 }
 
-// ── WebGL Renderer Config ─────────────────────────────────────────────
-function WebGLRendererConfig() {
-  const { gl, size } = useThree();
-
-  useEffect(() => {
-    gl.setPixelRatio(window.devicePixelRatio);
-    gl.setSize(size.width, size.height);
-    gl.setClearColor(0x000000, 0); // transparent background
-  }, [gl, size]);
-
-  return null;
-}
-
 // ── Public World Component ────────────────────────────────────────────
 export const GlobeWorld = forwardRef<GlobeWorldRef, WorldProps>(
   (props, ref) => {
     const scrollRotationRef = useRef(0);
-    const velocityBoostRef = useRef(0);
+    const scaleRef = useRef(1.0);
 
     useImperativeHandle(ref, () => ({
       setScrollRotation(angle: number) {
         scrollRotationRef.current = angle;
       },
-      setVelocityBoost(boost: number) {
-        velocityBoostRef.current = boost;
+      setScale(scale: number) {
+        scaleRef.current = scale;
       },
     }));
 
@@ -395,7 +394,6 @@ export const GlobeWorld = forwardRef<GlobeWorldRef, WorldProps>(
         style={{ background: "transparent", touchAction: "none" }}
         gl={{ alpha: true, antialias: true }}
       >
-        <WebGLRendererConfig />
         <ambientLight color="white" intensity={1.8} />
         <directionalLight
           color="white"
@@ -409,8 +407,8 @@ export const GlobeWorld = forwardRef<GlobeWorldRef, WorldProps>(
         />
         <GlobeInner
           {...props}
-          scrollRotationRef={scrollRotationRef}
-          velocityBoostRef={velocityBoostRef}
+          targetScrollRotationRef={scrollRotationRef}
+          targetScaleRef={scaleRef}
         />
       </Canvas>
     );
