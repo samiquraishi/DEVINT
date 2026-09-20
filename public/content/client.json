@@ -1,0 +1,23 @@
+{
+  "section": {
+    "name": "Global Reach",
+    "eyebrow": "GLOBAL REACH",
+    "heading": "ONE TEAM. NO BORDERS.",
+    "heading_highlights": ["TEAM", "BORDERS"],
+    "paragraph": "We work with clients around the world, bringing the same thoughtful approach to every project, wherever the idea begins. Whether you need a website, an application, automation, data solutions, or custom software, we collaborate remotely and build around your needs.",
+    "pointers": [
+      {
+        "label": "GLOBAL COLLABORATION",
+        "description": "Work with us from wherever you are."
+      },
+      {
+        "label": "FLEXIBLE COMMUNICATION",
+        "description": "Stay connected throughout the project."
+      },
+      {
+        "label": "BUILT AROUND YOU",
+        "description": "Technology shaped around your goals and requirements."
+      }
+    ]
+  }
+}
