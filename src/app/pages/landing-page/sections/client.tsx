@@ -1,6 +1,6 @@
 "use client";
 
-import React, { forwardRef, useImperativeHandle, useRef, Suspense } from "react";
+import React, { forwardRef, useImperativeHandle, useRef } from "react";
 import dynamic from "next/dynamic";
 import clientData from "../../../../../public/content/client.json";
 import { clamp, smoothstep } from "@/lib/utils";
@@ -285,10 +285,6 @@ export const ClientSection = forwardRef<ClientSectionRef, ClientSectionProps>(
     const eyebrowRefB = useRef<HTMLDivElement>(null);
     const headingRefB = useRef<HTMLDivElement>(null);
 
-    // Track previous pTotal for velocity calculation
-    const prevPTotalRef = useRef(0);
-    const velocityRef = useRef(0);
-
     const section = clientData.section;
 
     useImperativeHandle(ref, () => ({
@@ -296,60 +292,102 @@ export const ClientSection = forwardRef<ClientSectionRef, ClientSectionProps>(
         return containerRef.current;
       },
       updateProgress(pTotal: number) {
-        if (pTotal < SECTION_START || pTotal > SECTION_END) return;
+        // If before section: cleanly reset all state
+        if (pTotal < SECTION_START) {
+          if (globeWrapperRef.current) {
+            globeWrapperRef.current.style.visibility = "hidden";
+            globeWrapperRef.current.style.opacity = "0";
+            globeWrapperRef.current.style.left = "50%";
+            globeWrapperRef.current.style.top = "50%";
+            globeWrapperRef.current.style.transform = "translate(-50%, -50%)";
+          }
+          globeRef.current?.setScale(0.02);
+          globeRef.current?.setScrollRotation(0);
 
-        // ── Velocity tracking for globe spin speed ──
-        const delta = Math.abs(pTotal - prevPTotalRef.current);
-        prevPTotalRef.current = pTotal;
-        // Decay velocity, boost on scroll
-        velocityRef.current = velocityRef.current * 0.92 + delta * 80;
-        const velocityBoost = Math.min(velocityRef.current, 5);
-        globeRef.current?.setVelocityBoost(velocityBoost);
+          const allTextEls = [
+            eyebrowRefA.current,
+            eyebrowRefB.current,
+            headingRefA.current,
+            headingRefB.current,
+            paragraphRefA.current,
+            pointer1RefA.current,
+            pointer2RefA.current,
+            pointer3RefA.current,
+          ];
+          for (const el of allTextEls) {
+            if (el) {
+              el.style.visibility = "hidden";
+              animateChars(el, "in", 0);
+            }
+          }
+          return;
+        }
 
-        // ── Globe scroll rotation ──
+        // If past section: cleanly hide everything off-screen to the right
+        if (pTotal > SECTION_END) {
+          if (globeWrapperRef.current) {
+            globeWrapperRef.current.style.visibility = "hidden";
+            globeWrapperRef.current.style.opacity = "0";
+            globeWrapperRef.current.style.left = "150%";
+            globeWrapperRef.current.style.top = "50%";
+            globeWrapperRef.current.style.transform = "translate(-50%, -50%)";
+          }
+          const allTextEls = [
+            eyebrowRefA.current,
+            eyebrowRefB.current,
+            headingRefA.current,
+            headingRefB.current,
+            paragraphRefA.current,
+            pointer1RefA.current,
+            pointer2RefA.current,
+            pointer3RefA.current,
+          ];
+          for (const el of allTextEls) {
+            if (el) {
+              el.style.visibility = "hidden";
+              animateChars(el, "out", 1);
+            }
+          }
+          return;
+        }
+
+        // ── Globe scroll rotation (fluid lerp inside GlobeWorld tracks this) ──
         const globeProgress = clamp((pTotal - SECTION_START) / (SECTION_END - SECTION_START), 0, 1);
         const targetRotation = globeProgress * Math.PI * 4;
         globeRef.current?.setScrollRotation(targetRotation);
 
         // ── Globe positioning & scale ──
         if (globeWrapperRef.current) {
-          if (pTotal >= GLOBE_INTRO_START && pTotal <= FADE_OUT_END) {
-            globeWrapperRef.current.style.visibility = "visible";
+          globeWrapperRef.current.style.visibility = "visible";
+          globeWrapperRef.current.style.top = "50%";
+          globeWrapperRef.current.style.transform = "translate(-50%, -50%)";
 
-            if (pTotal < GLOBE_EXPAND_END) {
-              // 1. Appear from center (50%) and expand
-              const introP = smoothstep(GLOBE_INTRO_START, GLOBE_EXPAND_END, pTotal);
-              const scale = 0.05 + introP * 0.95; // 0.05 → 1.0
-              globeWrapperRef.current.style.left = "50%";
-              globeWrapperRef.current.style.top = "50%";
-              globeWrapperRef.current.style.transform = `translate(-50%, -50%) scale(${scale})`;
-              globeWrapperRef.current.style.opacity = `${introP}`;
-            } else if (pTotal < GLOBE_MOVE_END) {
-              // 2. Glide from center (50%) to right (75%)
-              const moveP = smoothstep(GLOBE_EXPAND_END, GLOBE_MOVE_END, pTotal);
-              const leftPos = 50 + moveP * 25; // 50% → 75%
-              globeWrapperRef.current.style.left = `${leftPos}%`;
-              globeWrapperRef.current.style.top = "50%";
-              globeWrapperRef.current.style.transform = "translate(-50%, -50%) scale(1)";
-              globeWrapperRef.current.style.opacity = "1";
-            } else if (pTotal <= HOLD_END) {
-              // 3. Settled at right (75%), fully interactive
-              globeWrapperRef.current.style.left = "75%";
-              globeWrapperRef.current.style.top = "50%";
-              globeWrapperRef.current.style.transform = "translate(-50%, -50%) scale(1)";
-              globeWrapperRef.current.style.opacity = "1";
-            } else {
-              // 4. Exit off-screen to the right (75% → 150%)
-              const moveOutP = smoothstep(HOLD_END, FADE_OUT_END, pTotal);
-              const leftPos = 75 + moveOutP * 75; // 75% → 150%
-              globeWrapperRef.current.style.left = `${leftPos}%`;
-              globeWrapperRef.current.style.top = "50%";
-              globeWrapperRef.current.style.transform = "translate(-50%, -50%) scale(1)";
-              globeWrapperRef.current.style.opacity = "1";
-            }
+          if (pTotal < GLOBE_EXPAND_END) {
+            // 1. Appear from center (50%) and expand in 3D
+            const introP = smoothstep(GLOBE_INTRO_START, GLOBE_EXPAND_END, pTotal);
+            const scale = 0.05 + introP * 0.95; // 0.05 → 1.0
+            globeWrapperRef.current.style.left = "50%";
+            globeWrapperRef.current.style.opacity = `${introP}`;
+            globeRef.current?.setScale(scale);
+          } else if (pTotal < GLOBE_MOVE_END) {
+            // 2. Glide from center (50%) to right (75%)
+            const moveP = smoothstep(GLOBE_EXPAND_END, GLOBE_MOVE_END, pTotal);
+            const leftPos = 50 + moveP * 25; // 50% → 75%
+            globeWrapperRef.current.style.left = `${leftPos}%`;
+            globeWrapperRef.current.style.opacity = "1";
+            globeRef.current?.setScale(1);
+          } else if (pTotal <= HOLD_END) {
+            // 3. Settled at right (75%), fully interactive
+            globeWrapperRef.current.style.left = "75%";
+            globeWrapperRef.current.style.opacity = "1";
+            globeRef.current?.setScale(1);
           } else {
-            globeWrapperRef.current.style.visibility = "hidden";
-            globeWrapperRef.current.style.opacity = "0";
+            // 4. Exit off-screen to the right (75% → 150%)
+            const moveOutP = smoothstep(HOLD_END, FADE_OUT_END, pTotal);
+            const leftPos = 75 + moveOutP * 75; // 75% → 150%
+            globeWrapperRef.current.style.left = `${leftPos}%`;
+            globeWrapperRef.current.style.opacity = "1";
+            globeRef.current?.setScale(1);
           }
         }
 
@@ -461,17 +499,15 @@ export const ClientSection = forwardRef<ClientSectionRef, ClientSectionProps>(
             opacity: 0,
             left: "50%",
             top: "50%",
-            transform: "translate(-50%, -50%) scale(0.02)",
+            transform: "translate(-50%, -50%)",
             willChange: "transform, opacity, left",
           }}
         >
-          <Suspense fallback={null}>
-            <GlobeWorld
-              ref={globeRef}
-              data={connectedArcs}
-              globeConfig={globeConfig}
-            />
-          </Suspense>
+          <GlobeWorld
+            ref={globeRef}
+            data={connectedArcs}
+            globeConfig={globeConfig}
+          />
         </div>
 
         {/* ── TEXT CONTENT — LEFT SIDE ──────────────────────────────────── */}
