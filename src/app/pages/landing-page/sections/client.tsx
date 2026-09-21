@@ -242,9 +242,9 @@ const animateChars = (container: HTMLElement, phase: "in" | "hold" | "out", phas
   });
 };
 
-// ── Section ranges (snappier timeline) ─────────────────────────────────
+// ── Section ranges ───────────────────────────────────────────────────
 const SECTION_START = 1.82;
-const SECTION_END = 2.35;
+const SECTION_END = 2.37;
 
 // Globe: expands in center 1.82 -> 1.88, glides to right 1.88 -> 1.96
 const GLOBE_INTRO_START = 1.82;
@@ -264,8 +264,8 @@ const PARAGRAPH_END = 2.07;
 const POINTERS_START = 2.06;
 const POINTERS_END = 2.16;
 
-const HOLD_END = 2.25;
-const FADE_OUT_END = 2.33;
+const HOLD_END = 2.29;
+const FADE_OUT_END = 2.37;
 
 export const ClientSection = forwardRef<ClientSectionRef, ClientSectionProps>(
   ({ isActive = true, className = "" }, ref) => {
