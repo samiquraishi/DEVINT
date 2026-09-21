@@ -375,7 +375,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     }
 
     // Client Section: Preloads at 1.40 to warm up WebGL/Three.js, enters at 1.80
-    const activeClient = pTotal >= 1.40 && pTotal <= 2.45;
+    const activeClient = pTotal >= 1.40 && pTotal <= 2.42;
     if (activeClient !== showClientRef.current) {
       showClientRef.current = activeClient;
       setClientActive(activeClient);
@@ -384,13 +384,12 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     if (clientRef.current) {
       const container = clientRef.current.container;
       if (container) {
-        if (pTotal >= 1.80 && pTotal <= 2.35) {
+        if (pTotal >= 1.80 && pTotal <= 2.39) {
           container.style.display = "flex";
           container.style.visibility = "visible";
           const clientFadeIn = smoothstep(1.80, 1.83, pTotal);
-          const clientFadeOut = pTotal > 2.25 ? 1 - smoothstep(2.25, 2.33, pTotal) : 1;
-          container.style.opacity = `${clientFadeIn * clientFadeOut}`;
-          if (pTotal >= 1.83 && pTotal <= 2.25) {
+          container.style.opacity = `${clientFadeIn}`;
+          if (pTotal >= 1.83 && pTotal <= 2.35) {
             container.style.pointerEvents = "auto";
           } else {
             container.style.pointerEvents = "none";
@@ -402,12 +401,12 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
           container.style.pointerEvents = "none";
         }
       }
-      if (pTotal >= 1.70 && pTotal <= 2.45) {
+      if (pTotal >= 1.70 && pTotal <= 2.42) {
         clientRef.current.updateProgress(pTotal);
       }
     }
 
-    // Connect Section: Preloads at 2.00 to warm up WebGL shader well before entering at 2.48
+    // Connect Section: Preloads at 2.00 to warm up WebGL shader well before entering at 2.35
     const activeConnect = pTotal >= 2.00;
     if (activeConnect !== showConnectRef.current) {
       showConnectRef.current = activeConnect;
@@ -415,10 +414,9 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     }
 
     if (connectRef.current) {
-      // Start updating at 2.20 so container is fully opaque BEFORE ClientSection fades out at 2.25
-      if (pTotal >= 2.20 && pTotal <= 3.25) {
+      if (pTotal >= 2.27 && pTotal <= 3.40) {
         connectRef.current.updateProgress(pTotal);
-      } else if (pTotal < 2.20) {
+      } else if (pTotal < 2.27) {
         // Ensure it's hidden if we scroll back up
         connectRef.current.updateProgress(0);
       }
@@ -584,7 +582,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
         <div ref={stageRef} className="sticky top-0 w-full overflow-hidden bg-transparent [--se-title-size:4rem]">
           <div
             ref={backdropRef}
-            className="absolute inset-0 bg-white z-0 pointer-events-none [will-change:clip-path]"
+            className="absolute inset-0 bg-[#08081a] z-0 pointer-events-none [will-change:clip-path]"
           >
             {bgContent}
           </div>
