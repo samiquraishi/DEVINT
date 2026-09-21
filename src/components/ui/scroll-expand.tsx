@@ -414,7 +414,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     }
 
     if (connectRef.current) {
-      if (pTotal >= 2.27 && pTotal <= 3.40) {
+      if (pTotal >= 2.27 && pTotal <= 3.55) {
         connectRef.current.updateProgress(pTotal);
       } else if (pTotal < 2.27) {
         // Ensure it's hidden if we scroll back up
@@ -582,7 +582,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
         <div ref={stageRef} className="sticky top-0 w-full overflow-hidden bg-transparent [--se-title-size:4rem]">
           <div
             ref={backdropRef}
-            className="absolute inset-0 bg-[#08081a] z-0 pointer-events-none [will-change:clip-path]"
+            className="absolute inset-0 bg-white z-0 pointer-events-none [will-change:clip-path]"
           >
             {bgContent}
           </div>

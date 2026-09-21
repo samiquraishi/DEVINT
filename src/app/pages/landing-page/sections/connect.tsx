@@ -36,7 +36,7 @@ const APPEAR_END = 2.72;
 const HOLD_END = 2.93;
 const DISAPPEAR_START = 2.93;
 const DISAPPEAR_END = 3.05;
-const SECTION_END = 3.35; // Allow scrolling slightly after text and aurora disappear
+const SECTION_END = 3.50; // Keep dark background fully active throughout entire bottom scroll track
 
 const FORM_START = 2.69;
 const FORM_END = 2.79;
