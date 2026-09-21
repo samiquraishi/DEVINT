@@ -244,7 +244,7 @@ const animateChars = (container: HTMLElement, phase: "in" | "hold" | "out", phas
 
 // ── Section ranges (snappier timeline) ─────────────────────────────────
 const SECTION_START = 1.82;
-const SECTION_END = 2.50;
+const SECTION_END = 2.35;
 
 // Globe: expands in center 1.82 -> 1.88, glides to right 1.88 -> 1.96
 const GLOBE_INTRO_START = 1.82;
@@ -264,8 +264,8 @@ const PARAGRAPH_END = 2.07;
 const POINTERS_START = 2.06;
 const POINTERS_END = 2.16;
 
-const HOLD_END = 2.42;
-const FADE_OUT_END = 2.50;
+const HOLD_END = 2.25;
+const FADE_OUT_END = 2.33;
 
 export const ClientSection = forwardRef<ClientSectionRef, ClientSectionProps>(
   ({ isActive = true, className = "" }, ref) => {
@@ -400,8 +400,8 @@ export const ClientSection = forwardRef<ClientSectionRef, ClientSectionProps>(
             if (pTotal < EYEBROW_END) {
               const t = clamp((pTotal - EYEBROW_START) / (EYEBROW_END - EYEBROW_START), 0, 1);
               animateChars(eyebrowEl, "in", t);
-            } else if (pTotal > 2.42) {
-              const t = clamp((pTotal - 2.42) / 0.03, 0, 1);
+            } else if (pTotal > HOLD_END) {
+              const t = clamp((pTotal - HOLD_END) / 0.03, 0, 1);
               animateChars(eyebrowEl, "out", t);
             } else {
               animateChars(eyebrowEl, "hold", 1);
@@ -421,8 +421,8 @@ export const ClientSection = forwardRef<ClientSectionRef, ClientSectionProps>(
             if (pTotal < HEADING_END) {
               const t = clamp((pTotal - HEADING_START) / (HEADING_END - HEADING_START), 0, 1);
               animateChars(el, "in", t);
-            } else if (pTotal > 2.43) {
-              const t = clamp((pTotal - 2.43) / 0.03, 0, 1);
+            } else if (pTotal > HOLD_END + 0.01) {
+              const t = clamp((pTotal - (HOLD_END + 0.01)) / 0.03, 0, 1);
               animateChars(el, "out", t);
             } else {
               animateChars(el, "hold", 1);
@@ -441,8 +441,8 @@ export const ClientSection = forwardRef<ClientSectionRef, ClientSectionProps>(
             if (pTotal < PARAGRAPH_END) {
               const t = clamp((pTotal - PARAGRAPH_START) / (PARAGRAPH_END - PARAGRAPH_START), 0, 1);
               animateChars(paragraphEl, "in", t);
-            } else if (pTotal > 2.44) {
-              const t = clamp((pTotal - 2.44) / 0.03, 0, 1);
+            } else if (pTotal > HOLD_END + 0.02) {
+              const t = clamp((pTotal - (HOLD_END + 0.02)) / 0.03, 0, 1);
               animateChars(paragraphEl, "out", t);
             } else {
               animateChars(paragraphEl, "hold", 1);
@@ -468,8 +468,8 @@ export const ClientSection = forwardRef<ClientSectionRef, ClientSectionProps>(
             if (pTotal < pEnd) {
               const t = clamp((pTotal - pStart) / (pEnd - pStart), 0, 1);
               animateChars(el, "in", t);
-            } else if (pTotal > 2.45) {
-              const t = clamp((pTotal - 2.45) / 0.03, 0, 1);
+            } else if (pTotal > HOLD_END + 0.03) {
+              const t = clamp((pTotal - (HOLD_END + 0.03)) / 0.03, 0, 1);
               animateChars(el, "out", t);
             } else {
               animateChars(el, "hold", 1);

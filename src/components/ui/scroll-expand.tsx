@@ -8,6 +8,7 @@ import ProblemSection, { ProblemSectionRef } from "@/app/pages/landing-page/sect
 import OfferingSection, { OfferingSectionRef } from "@/app/pages/landing-page/sections/offering";
 import BuildProcessSection, { BuildProcessSectionRef } from "@/app/pages/landing-page/sections/build-process";
 import ClientSection, { ClientSectionRef } from "@/app/pages/landing-page/sections/client";
+import ConnectSection, { ConnectSectionRef } from "@/app/pages/landing-page/sections/connect";
 import type { GlowingOrbHandle } from "./glowing-orb";
 import { clamp, smoothstep } from "@/lib/utils";
 
@@ -110,6 +111,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
   const offeringRef = useRef<OfferingSectionRef | null>(null);
   const buildProcessRef = useRef<BuildProcessSectionRef | null>(null);
   const clientRef = useRef<ClientSectionRef | null>(null);
+  const connectRef = useRef<ConnectSectionRef | null>(null);
 
   const showText2Ref = useRef(false);
   const showLine2Ref = useRef(false);
@@ -118,6 +120,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
   const showOfferingRef = useRef(false);
   const showBuildProcessRef = useRef(false);
   const showClientRef = useRef(false);
+  const showConnectRef = useRef(false);
 
   const [renderText2, setRenderText2] = useState(false);
   const [renderLine2, setRenderLine2] = useState(false);
@@ -126,6 +129,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
   const [offeringActive, setOfferingActive] = useState(false);
   const [buildProcessActive, setBuildProcessActive] = useState(false);
   const [clientActive, setClientActive] = useState(false);
+  const [connectActive, setConnectActive] = useState(false);
 
   const propsRef = useRef<Required<Pick<ScrollExpandProps, ConfigKey>>>(
     {} as Required<Pick<ScrollExpandProps, ConfigKey>>
@@ -371,7 +375,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     }
 
     // Client Section: Preloads at 1.40 to warm up WebGL/Three.js, enters at 1.80
-    const activeClient = pTotal >= 1.40;
+    const activeClient = pTotal >= 1.40 && pTotal <= 2.45;
     if (activeClient !== showClientRef.current) {
       showClientRef.current = activeClient;
       setClientActive(activeClient);
@@ -380,12 +384,13 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     if (clientRef.current) {
       const container = clientRef.current.container;
       if (container) {
-        if (pTotal >= 1.80 && pTotal <= 2.52) {
+        if (pTotal >= 1.80 && pTotal <= 2.35) {
           container.style.display = "flex";
           container.style.visibility = "visible";
           const clientFadeIn = smoothstep(1.80, 1.83, pTotal);
-          container.style.opacity = `${clientFadeIn}`;
-          if (pTotal >= 1.83 && pTotal <= 2.50) {
+          const clientFadeOut = pTotal > 2.25 ? 1 - smoothstep(2.25, 2.33, pTotal) : 1;
+          container.style.opacity = `${clientFadeIn * clientFadeOut}`;
+          if (pTotal >= 1.83 && pTotal <= 2.25) {
             container.style.pointerEvents = "auto";
           } else {
             container.style.pointerEvents = "none";
@@ -397,8 +402,25 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
           container.style.pointerEvents = "none";
         }
       }
-      if (pTotal >= 1.70 && pTotal <= 2.60) {
+      if (pTotal >= 1.70 && pTotal <= 2.45) {
         clientRef.current.updateProgress(pTotal);
+      }
+    }
+
+    // Connect Section: Preloads at 2.00 to warm up WebGL shader well before entering at 2.48
+    const activeConnect = pTotal >= 2.00;
+    if (activeConnect !== showConnectRef.current) {
+      showConnectRef.current = activeConnect;
+      setConnectActive(activeConnect);
+    }
+
+    if (connectRef.current) {
+      // Start updating at 2.20 so container is fully opaque BEFORE ClientSection fades out at 2.25
+      if (pTotal >= 2.20 && pTotal <= 3.25) {
+        connectRef.current.updateProgress(pTotal);
+      } else if (pTotal < 2.20) {
+        // Ensure it's hidden if we scroll back up
+        connectRef.current.updateProgress(0);
       }
     }
 
@@ -608,6 +630,10 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
           <ClientSection
             ref={clientRef}
             isActive={clientActive}
+          />
+          <ConnectSection
+            ref={connectRef}
+            isActive={connectActive}
           />
           {scrollHint ? (
             <div

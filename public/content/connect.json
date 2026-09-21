@@ -1,0 +1,40 @@
+{
+  "intro": {
+    "line1": "READY TO BUILD SOMETHING OF YOUR OWN?",
+    "line1_highlights": ["BUILD"],
+    "line2": "Tell us what you have in mind, and let's start the conversation."
+  },
+  "leftSide": {
+    "heading": "LET'S BUILD WHAT'S NEXT.",
+    "heading_highlights": ["NEXT."],
+    "paragraph": "Have an idea, a vision, or something in mind? Tell us about it, and we'll take it from there.",
+    "paragraph_highlights": ["idea,", "vision,"]
+  },
+  "form": {
+    "field1": {
+      "label": "NAME",
+      "placeholder": "Your name"
+    },
+    "field2": {
+      "label": "EMAIL",
+      "placeholder": "Where can we reach you?"
+    },
+    "field3": {
+      "label": "WHAT DO YOU WANT TO BUILD?",
+      "placeholder": "Tell us about your idea, project, challenge, or anything you'd like to explore."
+    },
+    "field4": {
+      "label": "WHAT DO YOU NEED?",
+      "options": [
+        "Website",
+        "Web App",
+        "Mobile App",
+        "AI / Automation",
+        "Data",
+        "Custom Software",
+        "Something Else"
+      ]
+    },
+    "submit": "START THE CONVERSATION →"
+  }
+}
