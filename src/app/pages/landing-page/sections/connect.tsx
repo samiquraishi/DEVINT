@@ -1,6 +1,6 @@
 "use client";
 
-import React, { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { clamp, smoothstep } from "@/lib/utils";
 import type { AuroraFluxHandle } from "@/components/ui/aurora-flux";
@@ -22,27 +22,28 @@ export interface ConnectSectionProps {
 }
 
 // ── Scroll Ranges ──────────────────────────────────────
-const SECTION_START = 2.20; 
+const SECTION_START = 2.35; 
 
-const INTRO_L1_START = 2.33;
-const INTRO_L1_END = 2.40;
-const INTRO_L2_START = 2.36;
-const INTRO_L2_END = 2.43;
-const INTRO_OUT_START = 2.65;
-const INTRO_OUT_END = 2.70;
+const INTRO_L1_START = 2.39;
+const INTRO_L1_END = 2.45;
+const INTRO_L2_START = 2.42;
+const INTRO_L2_END = 2.48;
+const INTRO_OUT_START = 2.63;
+const INTRO_OUT_END = 2.68;
 
-const APPEAR_START = 2.45;  
-const APPEAR_END = 2.75;    
-const HOLD_END = 2.94;
-const DISAPPEAR_START = 2.94;
-const DISAPPEAR_END = 3.06;
-const SECTION_END = 3.08;
+const APPEAR_START = 2.49;  
+const APPEAR_END = 2.72;    
+const HOLD_END = 2.93;
+const DISAPPEAR_START = 2.93;
+const DISAPPEAR_END = 3.05;
+const SECTION_END = 3.35; // Allow scrolling slightly after text and aurora disappear
 
-const FORM_START = 2.70;
-const FORM_END = 2.80;
+const FORM_START = 2.69;
+const FORM_END = 2.79;
 
 const BASE_SCALE = 1.2;
 const ZOOM_AMOUNT = 4.0;
+const PARALLAX_STRENGTH = 75; // Same parallax intensity as SphereGrid in Problem and Offering
 
 const renderFoldText = (
   text: string,
@@ -207,6 +208,61 @@ export const ConnectSection = forwardRef<ConnectSectionRef, ConnectSectionProps>
 
     const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
 
+    const parallaxRef = useRef({ cx: 0, cy: 0, tx: 0, ty: 0 });
+    const currentScaleRef = useRef(BASE_SCALE);
+    const isVisibleRef = useRef(false);
+
+    useEffect(() => {
+      const handlePointerMove = (e: PointerEvent) => {
+        if (!isVisibleRef.current) return;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        if (w <= 0 || h <= 0) return;
+        parallaxRef.current.tx = (e.clientX - w / 2) / (w / 2);
+        parallaxRef.current.ty = (e.clientY - h / 2) / (h / 2);
+      };
+
+      const handlePointerLeave = () => {
+        parallaxRef.current.tx = 0;
+        parallaxRef.current.ty = 0;
+      };
+
+      window.addEventListener("pointermove", handlePointerMove, { passive: true });
+      document.addEventListener("mouseleave", handlePointerLeave);
+
+      let animId: number | null = null;
+      let lastT = 0;
+
+      const renderLoop = (now: DOMHighResTimeStamp) => {
+        const dt = lastT === 0 ? 16.666 : now - lastT;
+        lastT = now;
+        const timeScale = dt / 16.666;
+
+        if (isVisibleRef.current) {
+          const pK = 1 - Math.pow(1 - 0.06, timeScale);
+          parallaxRef.current.cx += (parallaxRef.current.tx - parallaxRef.current.cx) * pK;
+          parallaxRef.current.cy += (parallaxRef.current.ty - parallaxRef.current.cy) * pK;
+
+          const pOffsetX = parallaxRef.current.cx * (PARALLAX_STRENGTH * 0.5);
+          const pOffsetY = parallaxRef.current.cy * (PARALLAX_STRENGTH * 0.5);
+
+          if (auroraWrapperRef.current) {
+            auroraWrapperRef.current.style.transform = `translate3d(${pOffsetX.toFixed(2)}px, ${pOffsetY.toFixed(2)}px, 0) scale(${currentScaleRef.current.toFixed(4)})`;
+          }
+        }
+
+        animId = requestAnimationFrame(renderLoop);
+      };
+
+      animId = requestAnimationFrame(renderLoop);
+
+      return () => {
+        window.removeEventListener("pointermove", handlePointerMove);
+        document.removeEventListener("mouseleave", handlePointerLeave);
+        if (animId !== null) cancelAnimationFrame(animId);
+      };
+    }, []);
+
     useImperativeHandle(ref, () => ({
       get container() {
         return containerRef.current;
@@ -216,18 +272,24 @@ export const ConnectSection = forwardRef<ConnectSectionRef, ConnectSectionProps>
         if (!container) return;
 
         if (pTotal < SECTION_START || pTotal > SECTION_END) {
+          isVisibleRef.current = false;
           container.style.display = "none";
           container.style.visibility = "hidden";
           container.style.opacity = "0";
           container.style.pointerEvents = "none";
           auroraRef.current?.setProgress(0);
-          if (auroraWrapperRef.current) auroraWrapperRef.current.style.transform = `scale(${BASE_SCALE})`;
+          currentScaleRef.current = BASE_SCALE;
+          if (auroraWrapperRef.current) {
+            auroraWrapperRef.current.style.opacity = "0";
+            auroraWrapperRef.current.style.transform = `translate3d(0px, 0px, 0) scale(${BASE_SCALE})`;
+          }
           return;
         }
 
+        isVisibleRef.current = true;
         container.style.display = "flex";
         container.style.visibility = "visible";
-        container.style.pointerEvents = pTotal >= FORM_START && pTotal < DISAPPEAR_END ? "auto" : "none";
+        container.style.pointerEvents = pTotal >= FORM_START && pTotal < DISAPPEAR_START ? "auto" : "none";
 
         let formationProgress = 0;
         if (pTotal < APPEAR_START) formationProgress = 0;
@@ -236,19 +298,22 @@ export const ConnectSection = forwardRef<ConnectSectionRef, ConnectSectionProps>
         auroraRef.current?.setProgress(formationProgress);
 
         if (pTotal <= HOLD_END) {
-          const fadeIn = smoothstep(2.35, APPEAR_START, pTotal) * 0.70;
-          container.style.opacity = "1";
+          const fadeIn = smoothstep(SECTION_START, SECTION_START + 0.04, pTotal);
+          container.style.opacity = `${fadeIn}`;
           if (auroraWrapperRef.current) {
-            auroraWrapperRef.current.style.opacity = `${fadeIn}`;
-            auroraWrapperRef.current.style.transform = `scale(${BASE_SCALE})`;
+            const auroraFade = smoothstep(APPEAR_START - 0.04, APPEAR_START, pTotal) * 0.70;
+            auroraWrapperRef.current.style.opacity = `${auroraFade}`;
           }
+          currentScaleRef.current = BASE_SCALE;
         } else {
+          // Container remains fully visible (opacity 1) with dark radial gradient — NEVER transitions to white!
           container.style.opacity = "1";
           if (auroraWrapperRef.current) {
-            auroraWrapperRef.current.style.opacity = "0.70";
+            // Aurora background fades out and zooms away smoothly during [DISAPPEAR_START, DISAPPEAR_END]
+            const auroraFadeOut = 1 - smoothstep(DISAPPEAR_START, DISAPPEAR_END, pTotal);
+            auroraWrapperRef.current.style.opacity = `${0.70 * auroraFadeOut}`;
             const zoomP = smoothstep(DISAPPEAR_START, DISAPPEAR_END, pTotal);
-            const scale = BASE_SCALE + zoomP * ZOOM_AMOUNT;
-            auroraWrapperRef.current.style.transform = `scale(${scale})`;
+            currentScaleRef.current = BASE_SCALE + zoomP * ZOOM_AMOUNT;
           }
         }
 
