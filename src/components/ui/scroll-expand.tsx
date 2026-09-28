@@ -9,6 +9,7 @@ import OfferingSection, { OfferingSectionRef } from "@/app/pages/landing-page/se
 import BuildProcessSection, { BuildProcessSectionRef } from "@/app/pages/landing-page/sections/build-process";
 import ClientSection, { ClientSectionRef } from "@/app/pages/landing-page/sections/client";
 import ConnectSection, { ConnectSectionRef } from "@/app/pages/landing-page/sections/connect";
+import FooterSection, { FooterSectionRef } from "@/app/pages/landing-page/sections/footer";
 import type { GlowingOrbHandle } from "./glowing-orb";
 import { clamp, smoothstep } from "@/lib/utils";
 
@@ -112,6 +113,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
   const buildProcessRef = useRef<BuildProcessSectionRef | null>(null);
   const clientRef = useRef<ClientSectionRef | null>(null);
   const connectRef = useRef<ConnectSectionRef | null>(null);
+  const footerRef = useRef<FooterSectionRef | null>(null);
 
   const showText2Ref = useRef(false);
   const showLine2Ref = useRef(false);
@@ -121,6 +123,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
   const showBuildProcessRef = useRef(false);
   const showClientRef = useRef(false);
   const showConnectRef = useRef(false);
+  const showFooterRef = useRef(false);
 
   const [renderText2, setRenderText2] = useState(false);
   const [renderLine2, setRenderLine2] = useState(false);
@@ -130,6 +133,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
   const [buildProcessActive, setBuildProcessActive] = useState(false);
   const [clientActive, setClientActive] = useState(false);
   const [connectActive, setConnectActive] = useState(false);
+  const [footerActive, setFooterActive] = useState(false);
 
   const propsRef = useRef<Required<Pick<ScrollExpandProps, ConfigKey>>>(
     {} as Required<Pick<ScrollExpandProps, ConfigKey>>
@@ -423,6 +427,21 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     }
 
 
+    // Footer Section: Preloads at 2.90, enters at 3.05
+    const activeFooter = pTotal >= 2.90;
+    if (activeFooter !== showFooterRef.current) {
+      showFooterRef.current = activeFooter;
+      setFooterActive(activeFooter);
+    }
+
+    if (footerRef.current) {
+      if (pTotal >= 3.00) {
+        footerRef.current.updateProgress(pTotal);
+      } else {
+        footerRef.current.updateProgress(0);
+      }
+    }
+
     if (hintRef.current) {
       const gone = smoothstep(0, 0.12, p);
       hintRef.current.style.opacity = `${1 - gone}`;
@@ -632,6 +651,10 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
           <ConnectSection
             ref={connectRef}
             isActive={connectActive}
+          />
+          <FooterSection
+            ref={footerRef}
+            isActive={footerActive}
           />
           {scrollHint ? (
             <div
