@@ -1,0 +1,38 @@
+{
+  "tagline": {
+    "line1": "YOUR IDEA,",
+    "line2": "BUILT BY US.",
+    "subtitle": "TECHNOLOGY THAT BRINGS IDEAS TO LIFE."
+  },
+  "columns": {
+    "explore": {
+      "title": "EXPLORE",
+      "links": [
+        { "label": "Home", "href": "/" },
+        { "label": "Services", "href": "/services" },
+        { "label": "The Way We Build", "href": "/the-way-we-build" },
+        { "label": "Contact", "href": "/contact" }
+      ]
+    },
+    "connect": {
+      "title": "CONNECT",
+      "links": [
+        { "label": "hello@devint.co", "href": "mailto:hello@devint.co" },
+        { "label": "LinkedIn", "href": "https://linkedin.com", "external": true },
+        { "label": "Instagram", "href": "https://instagram.com", "external": true }
+      ]
+    }
+  },
+  "cta": {
+    "text": "START A CONVERSATION",
+    "href": "/contact"
+  },
+  "brand": "DEVINT",
+  "bottom": {
+    "copyright": "© 2026 DEVINT. All rights reserved.",
+    "links": [
+      { "label": "Privacy", "href": "/privacy" },
+      { "label": "Terms", "href": "/terms" }
+    ]
+  }
+}
